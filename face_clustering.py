@@ -5,6 +5,8 @@ import dlib
 import os
 import numpy as np
 from face_encodings import Face_Encoding
+import pandas as pd
+import similarity_metrics as sm
 
 class FaceClustering:
 
@@ -99,7 +101,7 @@ if __name__ == '__main__':
     for image_path in paths.list_images("D:\Tuts\DataScience\Python\Datasets\FGNET\Age_Test\Old"):
         image_paths.append(image_path)
 
-    for image_path in image_paths:
+    for image_path in image_paths[:10]:
 
         input_image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
         #input_image = cv2.resize(input_image, (320, 320))
@@ -133,10 +135,32 @@ if __name__ == '__main__':
         print(np.array(descriptors).shape)
 
 
-    c = fc.create_clusters(descriptors=descriptors)
+    target_image_path = "D:\Tuts\DataScience\Python\Datasets\FGNET\Age_Test\\test1.jpg"
+    target_image = cv2.imread(target_image_path, cv2.IMREAD_UNCHANGED)
+    target_descriptor, img = fe.compute_facenet_embedding_dlib(image=target_image, draw=True)
+
+    matches = []
+
+    for i, d in enumerate(descriptors):
+
+        target_distance = sm.euclidean_distance(d, np.array(target_descriptor, dtype=np.float32).reshape(-1,1))
+
+        if target_distance < 0.5:
+            matches.append(cluster_images[i])
+
+
+
+
+    for i, m in enumerate(matches):
+        m = cv2.resize(m, (320,320))
+        cv2.putText(m, str(i), (320, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
+        cv2.imshow("Match", m)
+        cv2.waitKey(0)
+
+    '''c = fc.create_clusters(descriptors=descriptors)
     bc = fc.find_biggest_cluster(clusters=c)
     bc_indices = fc.get_indices_of_biggest_cluster(clusters=c, biggest_cluster=bc)
-    fc.display_all_cluster_images(clusters=c, image_paths=image_paths, cluster_images=cluster_images)
+    fc.display_all_cluster_images(clusters=c, image_paths=image_paths, cluster_images=cluster_images)'''
 
 
 
