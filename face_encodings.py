@@ -12,10 +12,12 @@ class Face_Encoding:
 ###############################################
 
 
-    def __init__(self):
+    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68"):
 
+        self.fd_model = face_detection_model
+        self.fl_model = face_landmark_model
         self.facerec = dlib.face_recognition_model_v1("Dlib/dlib_face_recognition_resnet_model_v1.dat")
-        self.fd = FaceDetection()
+        self.fd = FaceDetection(face_detection_model=face_detection_model , face_landmark_model=face_landmark_model)
 
     #Local binary pattern of image
     def get_local_binary_pattern(self, image, image_path, numPoints = 24, radius = 8, eps=1e-7):
@@ -125,7 +127,7 @@ class Face_Encoding:
 
 ###############################################
 
-    def compute_facenet_embedding_dlib(self, image,  upsample = 1, draw = False, resize = False, img_sizeX = 320, img_sizeY=320):
+    def compute_facenet_embedding_dlib(self, image, upsample = 1, allign = False, draw = False, resize = False, img_sizeX = 320, img_sizeY=320):
 
 
         if resize:
@@ -134,21 +136,41 @@ class Face_Encoding:
         else:
             img = image
 
+
+
+
         # Ask the detector to find the bounding boxes of each face. The 1 in the
         # second argument indicates that we should upsample the image 1 time. This
         # will make everything bigger and allow us to detect more faces.
-        dets, img = self.fd.detect_face(image=img, upsample=upsample)
+        dets = self.fd.detect_face(image=img, upsample=upsample)
 
 
-
+        # To draw bounding box on the detected face
         if draw:
             color_green = (0, 255, 0)
             line_width = 3
 
-            for det in dets:
-                #if len(dets) > 0:
-                #det = dets[0]
-                cv2.rectangle(img, (det.left(), det.top()), (det.right(), det.bottom()), color_green, line_width)
+            if self.fd.detector == self.fd.hog_face_detector:
+                for det in dets:
+                    #if len(dets) > 0:
+                    #det = dets[0]
+                    cv2.rectangle(img, (det.left(), det.top()), (det.right(), det.bottom()), color_green, line_width)
+
+            else:
+                for i, d in enumerate(dets):
+                    print("Detection {}: Left: {} Top: {} Right: {} Bottom: {} Confidence: {}".format(
+                        i, d.rect.left(), d.rect.top(), d.rect.right(), d.rect.bottom(), d.confidence))
+
+                    #cv2.rectangle(img, (d.rect.left(), d.rect.top(), d.rect.right(), d.rect.bottom()),
+                    #              color_green, line_width)
+
+                    x = d.rect.left()
+                    y = d.rect.top()
+                    w = d.rect.right() - x
+                    h = d.rect.bottom() - y
+
+                    # draw box over face
+                    cv2.rectangle(img, (x, y), (x + w, y + h), color_green, line_width)
 
 
 
@@ -158,15 +180,70 @@ class Face_Encoding:
         if len(dets) == 0:
             return None, None
 
-        shapes = self.fd.detect_face_landmarks(dets=dets, image=image)
+
+        shapes = self.fd.detect_face_landmarks(dets=dets, image=image, model=self.fd_model)
         descriptors = []
 
 
         for shape in shapes:
+
+            # Alligns and crops image 150 x 150 for improved results
+            if allign:
+                img = dlib.get_face_chip(img, shape)
+
             d = self.facerec.compute_face_descriptor(img, shape)
             descriptors.append(d)
 
         return descriptors, img
+
+
+###############################################
+
+
+    def compute_facenet_embedding_dlib_batch(self, image_list, batch_size = 128, upsample=1, allign=False, draw=False, resize=False,
+                                             img_sizeX=320, img_sizeY=320):
+
+        if resize:
+            for i, image in enumerate(image_list):
+                image_list[i] = cv2.resize(image, (img_sizeX, img_sizeY))
+
+
+        dets = self.fd.detect_face_batch(image_list=image_list, batch_size=batch_size, upsample=upsample)
+
+
+
+        # To draw bounding box on the detected face
+        if draw:
+            color_green = (0, 255, 0)
+            line_width = 3
+
+            for i, d in enumerate(dets):
+                print("Detection {}: Left: {} Top: {} Right: {} Bottom: {} Confidence: {}".format(
+                    i, d.rect.left(), d.rect.top(), d.rect.right(), d.rect.bottom(), d.confidence))
+                cv2.rectangle(image_list[i], (d.rect.left(), d.rect.top(), d.rect.right(), d.rect.bottom()), color_green, line_width)
+
+
+
+        print("Number of faces detected: {}".format(len(dets)))
+
+        if len(dets) == 0:
+            return None, None
+
+        for image in image_list:
+            shapes = self.fd.detect_face_landmarks(dets=dets, image=image)
+            descriptors = []
+
+            for shape in shapes:
+
+                # Alligns and crops image 150 x 150 for improved results
+                if allign:
+                    img = dlib.get_face_chip(img, shape)
+
+                d = self.facerec.compute_face_descriptor(img, shape)
+                descriptors.append(d)
+
+        return descriptors, image_list
+
 
 
 ###############################################

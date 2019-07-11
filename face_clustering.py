@@ -8,6 +8,10 @@ from face_encodings import Face_Encoding
 import pandas as pd
 import similarity_metrics as sm
 
+
+
+
+
 class FaceClustering:
 
     def __init__(self, d_value = 0.5):
@@ -92,14 +96,23 @@ class FaceClustering:
 if __name__ == '__main__':
 
     descriptors = []
-    fe = Face_Encoding()
+    fe = Face_Encoding(face_detection_model="CNN")
     fc = FaceClustering()
 
+    image_list = []
     image_paths = []
     cluster_images = []
 
     for image_path in paths.list_images("D:\Tuts\DataScience\Python\Datasets\FGNET\Age_Test\Old"):
         image_paths.append(image_path)
+        #print(image_path)
+        #input_image = cv2.imread(image_path, cv2.IMREAD_ANYCOLOR)
+        #input_image = cv2.resize(input_image, (320, 320))
+        #input_image = dlib.load_rgb_image(image_path)
+       # image_list.append(input_image)
+
+
+    #descriptors, image_list = fe.compute_facenet_embedding_dlib_batch(image_list=image_list, draw=True, )
 
     for image_path in image_paths[:10]:
 
