@@ -126,7 +126,7 @@ class FaceDetection:
         A dlib MMOD (max-margin object-detection) rectangle object
         You can access its rectangles as det.rect for det in dets 
     '''
-    def detect_face_batch(self, image_list, upsample = 1, batch_size = 128, resize = False, sizeX= 320, sizeY=320):
+    def detect_face_batch(self, image_list, upsample = 1, batch_size = 128, sizeX= 320, sizeY=320):
 
         print("\nDetecting faces in a batch...")
 
@@ -447,26 +447,29 @@ if __name__ == "__main__":
         images.append(image)
 
     # Test with only last image from list which has 3 faces
-    dets = fd.detect_face(images[-1])
+    dets = fd.detect_face(images[-2])
 
-    shapes = fd.detect_face_landmarks(images[-1], dets)
+    shapes = fd.detect_face_landmarks(images[-2], dets)
 
-    image = fd.draw_face_landmarks(image=images[-1], dets=dets, shapes=shapes, return_drawn_landmarks=False)
+    image = fd.draw_face_landmarks(image=images[-2], dets=dets, shapes=shapes, return_drawn_landmarks=False)
 
-    alligned_chips = fd.get_alligned_face(image=images[-1], dets=dets, output_width=500)
-
+    alligned_chips = fd.get_alligned_face(image=images[-2], dets=dets, output_width=500)
 
     for ac in alligned_chips:
-        cv2.imshow("Alligned_Face", ac)
-        cv2.waitKey(0)
+        dets = fd.detect_face(image=ac)
+        shapes = fd.detect_face_landmarks(ac,dets)
+        image = fd.draw_face_landmarks(image=ac, dets=dets, shapes=shapes, return_drawn_landmarks=False)
+
 
     cv2.destroyAllWindows()
 
-    slices = fd.get_face_slices(image=images[-1], dets=dets)
+    for ac in alligned_chips:
 
-    for slice, name in slices:
-        cv2.imshow(str(name).upper(), slice)
-        cv2.waitKey(0)
-        cv2.destroyWindow(str(name).upper())
+        slices = fd.get_face_slices(image=ac, dets=dets)
+
+        for slice, name in slices:
+            cv2.imshow(str(name).upper(), slice)
+            cv2.waitKey(0)
+            cv2.destroyWindow(str(name).upper())
 
 
