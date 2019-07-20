@@ -1,32 +1,64 @@
 
-from imutils import paths
+import argparse
 import cv2
 import dlib
 import os
 import numpy as np
 from face_encodings import Face_Encoding
-import pandas as pd
 import similarity_metrics as sm
+import utilities
+from sklearn.cluster import DBSCAN
+from face_allignment import FaceAlligner
 
-
-
+'''
+This class is responsible for clustering of face images
+'''
 
 
 class FaceClustering:
 
-    def __init__(self, d_value = 0.5):
-        self.d_value = d_value
+    # Initialize with a d_value which is just a distance / threshold value used for clustering
+    def __init__(self):
+        pass
+
+    # This function creates clusters based on provided vectors
+    '''
+    Params:
+        descriptors - Computed Face image descriptors / vector representations
+    
+    Returns:
+        clusters - Computed Clusters
+    '''
+    def create_clusters(self, descriptors, d_value = 0.5, method = "CW"):
 
 
-    def create_clusters(self, descriptors):
+        print("\nUsing {} cluster method".format(method))
 
-        clusters = dlib.chinese_whispers_clustering(descriptors, self.d_value)
-        num_classes = len(set(clusters))
+        if method == "DB":
+            #Compute clusters using DBSCAN
+            clust = DBSCAN(metric="euclidean", n_jobs=1)
+            clust.fit(descriptors)
+            clusters = np.unique(clust.labels_)
+            num_classes = len(np.where(clusters > -1)[0])
+            clusters = clust.labels_
+
+        elif method == "CW":
+            # Computer clusters using chinese whispers
+            clusters = dlib.chinese_whispers_clustering(descriptors, d_value)
+            num_classes = len(set(clusters))
+
+        else:
+            print("Please provide proper method as CW or DB")
+            exit()
+
+
         print("Number of clusters: {}".format(num_classes))
         print("Clusters: {}".format(clusters))
 
+
         return clusters
 
+    # This function finds and returns the biggest cluster number from the given clusters
     def find_biggest_cluster(self, clusters):
 
         # Find biggest class
@@ -40,11 +72,12 @@ class FaceClustering:
                 biggest_cluster_length = class_length
                 biggest_cluster = i
 
-        print("Biggest cluster id number: {}".format(biggest_cluster))
+        print("\nBiggest cluster id number: {}".format(biggest_cluster))
         print("Number of faces in biggest cluster: {}".format(biggest_cluster_length))
 
         return biggest_cluster
 
+    # Get all the indices of images corresponding to the biggest cluster
     def get_indices_of_biggest_cluster(self, clusters, biggest_cluster):
 
         # Find the indices for the biggest class
@@ -57,26 +90,36 @@ class FaceClustering:
 
         return indices
 
-    def display_biggest_cluster_images(self, biggest_cluster_indices, image_paths):
+
+    def display_biggest_cluster_images(self, biggest_cluster_indices, image_paths, cluster_images, read_images = False):
         for i, index in enumerate(biggest_cluster_indices):
-                img = cv2.imread(image_paths[index], cv2.IMREAD_UNCHANGED)
+                if read_images:
+                    img = cv2.imread(image_paths[index], cv2.IMREAD_UNCHANGED)
+                else:
+                    img = cluster_images[index]
                 img = cv2.resize(img, (320,320))
                 cv2.imshow("Window", img)
                 cv2.waitKey(0)
 
-    def display_all_cluster_images(self, clusters, image_paths, cluster_images, read_images = False, save_to_file = False, save_path = ""):
+        cv2.destroyWindow("Window")
 
-        num_classes = len(set(clusters))
+    # Displays all images in the given cluster
+    def display_cluster_images(self, clusters, image_paths, cluster_images, read_images = False, save_to_file = False, save_path = "Cluster\\"):
+
 
         if save_to_file:
             # Ensure output directory exists
             if not os.path.isdir(save_path):
                 os.makedirs(save_path)
 
-        for num in range(0, num_classes):
-            for i, cluster_no in enumerate(clusters):
-                if cluster_no == num:
+        num_classes = len(set(clusters))
+        print(num_classes)
 
+        for num in range(-1, num_classes):
+
+            for i, cluster_no in enumerate(clusters):
+
+                if cluster_no == num:
                     if read_images:
                         img = cv2.imread(image_paths[i], cv2.IMREAD_UNCHANGED)
                     else:
@@ -88,39 +131,60 @@ class FaceClustering:
                         cv2.imwrite(p, img)
 
                     else:
-                        cv2.imshow("Window", img)
+                        cv2.imshow("Cluster no %s"%str(cluster_no), img)
                         cv2.waitKey(0)
+                        cv2.destroyWindow("Cluster no %s"%str(cluster_no))
 
+
+
+
+
+def parse_args():
+
+    # construct the argument parser and parse the arguments
+    ap = argparse.ArgumentParser()
+
+    ap.add_argument("-id", "--image_dir", required=True, help="Path for the images")
+    ap.add_argument("-fd", "--face_detection", choices=["CNN", "HOG"], required=False,
+                    help="type of face detection using HOG or deep learning CNN", default="CNN")
+
+    ap.add_argument("-fl", "--face_landmarks", choices=["68", "5"], required=False,
+                    help="Whether to use a 68-point or 5-point based landmark detection model", default="68")
+
+    ap.add_argument("-mp", "--multi_proc", required=False, default=True, type=utilities.str2bool, nargs='?',
+                    help="Whether to use multiprocessing")
+
+    return vars(ap.parse_args())
 
 
 if __name__ == '__main__':
 
     descriptors = []
-    fe = Face_Encoding(face_detection_model="CNN")
+    fe = Face_Encoding(face_detection_model="HOG", face_landmark_model="68")
     fc = FaceClustering()
-
-    image_list = []
-    image_paths = []
     cluster_images = []
-
-    for image_path in paths.list_images("D:\Tuts\DataScience\Python\Datasets\FGNET\Age_Test\Old"):
-        image_paths.append(image_path)
-        #print(image_path)
-        #input_image = cv2.imread(image_path, cv2.IMREAD_ANYCOLOR)
-        #input_image = cv2.resize(input_image, (320, 320))
-        #input_image = dlib.load_rgb_image(image_path)
-       # image_list.append(input_image)
+    ip = "Images\\Face_Clustering\\"
 
 
-    #descriptors, image_list = fe.compute_facenet_embedding_dlib_batch(image_list=image_list, draw=True, )
 
-    for image_path in image_paths[:10]:
+    image_paths = utilities.get_imagepaths(ip)
+    #image_list = utilities.get_images(image_path=ip)
 
-        input_image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-        #input_image = cv2.resize(input_image, (320, 320))
+
+    for image_path in image_paths:
+
+        print("\n"+image_path)
+        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        image = cv2.resize(image, (500, 500))
+
+        #dets = fe.fd.detect_face(image=image)
+
+        #if len(dets) > 0:
+        #    image =  fe.fd.get_alligned_face(image=image, dets=dets)[0]
 
         # Extract the 128-D face embedding
-        embeddings, img = fe.compute_facenet_embedding_dlib(image=input_image, draw=True)
+        embeddings, drawn_image = fe.compute_facenet_embedding_dlib(image=image, draw=True)
+
 
         if embeddings is None:
             print("Could not extract descriptor")
@@ -130,7 +194,8 @@ if __name__ == '__main__':
             print("Could not extract descriptor")
             continue
 
-
+        # For all embeddings returned in case of multiple faces in a single image
+        # Append all embeddings into a list and append its corresponding image
         for e in embeddings:
 
             if e is None:
@@ -140,40 +205,17 @@ if __name__ == '__main__':
                 continue
 
             descriptors.append(e)
-            cluster_images.append(img)
-
-
-
-        print(image_path)
+            cluster_images.append(drawn_image)
         print(np.array(descriptors).shape)
 
 
-    target_image_path = "D:\Tuts\DataScience\Python\Datasets\FGNET\Age_Test\\test1.jpg"
-    target_image = cv2.imread(target_image_path, cv2.IMREAD_UNCHANGED)
-    target_descriptor, img = fe.compute_facenet_embedding_dlib(image=target_image, draw=True)
-
-    matches = []
-
-    for i, d in enumerate(descriptors):
-
-        target_distance = sm.euclidean_distance(d, np.array(target_descriptor, dtype=np.float32).reshape(-1,1))
-
-        if target_distance < 0.5:
-            matches.append(cluster_images[i])
 
 
-
-
-    for i, m in enumerate(matches):
-        m = cv2.resize(m, (320,320))
-        cv2.putText(m, str(i), (320, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
-        cv2.imshow("Match", m)
-        cv2.waitKey(0)
-
-    '''c = fc.create_clusters(descriptors=descriptors)
+    c = fc.create_clusters(descriptors=descriptors, method="CW")
     bc = fc.find_biggest_cluster(clusters=c)
     bc_indices = fc.get_indices_of_biggest_cluster(clusters=c, biggest_cluster=bc)
-    fc.display_all_cluster_images(clusters=c, image_paths=image_paths, cluster_images=cluster_images)'''
+    fc.display_biggest_cluster_images(biggest_cluster_indices=bc_indices, image_paths=image_paths, cluster_images=cluster_images)
+    fc.display_cluster_images(clusters=c, image_paths=image_paths, cluster_images=cluster_images)
 
 
 

@@ -6,6 +6,14 @@ import matplotlib.pyplot as plt
 import dlib
 from face_detection import FaceDetection
 from imutils import paths
+import dlib.cuda as cuda
+import dlib
+
+'''
+This class handles computation of different image and face image encodings
+'''
+
+
 
 class Face_Encoding:
 
@@ -14,6 +22,8 @@ class Face_Encoding:
 
     def __init__(self, face_detection_model = "HOG", face_landmark_model = "68"):
 
+        cuda.set_device(0)
+        dlib.DLIB_USE_CUDA = True
         self.fd_model = face_detection_model
         self.fl_model = face_landmark_model
         self.facerec = dlib.face_recognition_model_v1("Dlib/dlib_face_recognition_resnet_model_v1.dat")
@@ -175,6 +185,8 @@ class Face_Encoding:
     '''
     Params:
         image - Given RGB/Grayscale image
+        dets - Detected face rects
+        shapes - Detected face landmarks
         upsample - Whether to upscale the image for better face detection accuracy
         draw - Whether to draw detected face bounding box on the given image
     
@@ -182,13 +194,15 @@ class Face_Encoding:
         descriptor - A List of descriptors of 128-Dimensions computed from a pretrained (dlib's model) cnn for all detected faces
         image - Original image with or without the face bounding box drawn
     '''
-    def compute_facenet_embedding_dlib(self, image, upsample = 1, draw = False):
+    def compute_facenet_embedding_dlib(self, image, dets = None, shapes = None, upsample = 1, draw = False):
 
 
         # Ask the detector to find the bounding boxes of each face. The 1 in the
         # second argument indicates that we should upsample the image 1 time. This
         # will make everything bigger and allow us to detect more faces.
-        dets = self.fd.detect_face(image=image, upsample=upsample)
+
+        if dets is None:
+            dets = self.fd.detect_face(image=image, upsample=upsample)
 
 
         # To draw bounding box on the detected face
@@ -196,10 +210,12 @@ class Face_Encoding:
             color_green = (0, 255, 0)
             line_width = 3
 
+            # If HOG based detection used
             if self.fd.detector == self.fd.hog_face_detector:
                 for det in dets:
                     cv2.rectangle(image, (det.left(), det.top()), (det.right(), det.bottom()), color_green, line_width)
 
+            # Else CNN based detector used
             else:
                 for i, d in enumerate(dets):
                     print("Detection {}: Left: {} Top: {} Right: {} Bottom: {} Confidence: {}".format(
@@ -229,8 +245,12 @@ class Face_Encoding:
 
         descriptors = []
 
-        shapes = self.fd.detect_face_landmarks(dets=dets, image=image)
+        # If no landmarks given, detect them
+        if shapes is None:
+            shapes = self.fd.detect_face_landmarks(dets=dets, image=image)
 
+        # Compute descriptor for all landmarks incase of multiple faces in single image
+        #
         for shape in shapes:
             d = self.facerec.compute_face_descriptor(image, shape)
             descriptors.append(d)

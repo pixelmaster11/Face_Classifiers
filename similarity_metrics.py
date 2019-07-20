@@ -7,7 +7,7 @@ def euclidean_distance(x, y):
     return sqrt(sum(pow(a - b, 2) for a, b in zip(x, y)))
 
 # Calculates the euclidean distance between two vectors using numpy
-def euclidean_distance_numpy(x, y, axis = 0):
+def euclidean_distance_numpy(x, y, axis = 1):
    return np.linalg.norm(x - y, axis=axis)
 
 # Calculates the manhattan distance between two vectors
@@ -31,12 +31,12 @@ def _square_root(x):
 def cosine_similarity(x, y):
     numerator = sum(a * b for a, b in zip(x, y))
     denominator = _square_root(x) * _square_root(y)
-    return round(numerator / float(denominator), 3)
+    return np.round(numerator / float(denominator), 3)
 
 # Calculates the cosine distance between two vectors
 def cosine_distance(x, y):
     distance = 1 - cosine_similarity(x, y)
-    return round(distance, 3)
+    return np.round(distance, 3)
 
 # Calculates the jaccard similarity between two vectors
 def jaccard_similarity(x, y):

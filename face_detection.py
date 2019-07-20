@@ -106,11 +106,11 @@ class FaceDetection:
     '''
     def detect_face(self, image, upsample = 1):
 
-        print("\nDetecting face..")
+        #print("\nDetecting face..")
         dets = self.detector(image, upsample)
 
-        print("Detection Type %s" %type(dets))
-        print("Number of faces detected: {}".format(len(dets)))
+        #print("Detection Type %s" %type(dets))
+        #print("Number of faces detected: {}".format(len(dets)))
         return dets
 
 ###########################################################################
@@ -172,7 +172,7 @@ class FaceDetection:
     '''
     def detect_face_landmarks(self, image, dets):
 
-        print("\nDetecting facial landmarks..")
+        #print("\nDetecting facial landmarks..")
 
         shapes = []
 
@@ -198,7 +198,7 @@ class FaceDetection:
         #    print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
         #                                              shape.part(1)))
 
-        print("Landmarks successfully detected")
+        #print("Landmarks successfully detected")
         return shapes
 
 ###########################################################################
@@ -233,6 +233,9 @@ class FaceDetection:
         # Get the alligned face images
         images = dlib.get_face_chips(image, self.faces, size= size, padding = padding)
 
+        for image in images:
+            cv2.imshow("asd", image)
+            cv2.waitKey(0)
         print("Image successfully alligned and resized to size %s" %size)
 
         return images
@@ -375,12 +378,18 @@ class FaceDetection:
         shapes - Located landmarks shapes 
         return_drawn_landmarks - Whether to return the image with drawn landmarks or display using this function without returning anything
         draw_type - Whether to draw points or lines to depict a landmark
+    
+    Returns:
+        if return_drawn_landmarks is True
+        then returns the drawn image
     '''
     def draw_face_landmarks(self, image, dets = None, shapes = [], return_drawn_landmarks = False, draw_type = "line"):
 
         print("\nDrawing face landmarks..\n")
-        win = dlib.image_window()
-        win.set_image(image)
+
+        if not return_drawn_landmarks:
+            win = dlib.image_window()
+            win.set_image(image)
 
         if self.sp == self.shape_68_face_landmarks:
             face_landmarks_list = face_utils.FACIAL_LANDMARKS_68_IDXS
