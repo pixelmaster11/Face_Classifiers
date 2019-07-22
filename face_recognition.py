@@ -66,6 +66,7 @@ class FaceRecognition:
 
         target_embeddings = []
         target_images = []
+        boxes = []
 
         print("\nRecognizing faces at path %s" % target_path)
 
@@ -98,7 +99,8 @@ class FaceRecognition:
 
             #If no allignment then directly compute the embeddings
             else:
-                embeds = self.fe.get_embeddings(image)
+                dets = self.fe.fd.detect_face(image=image)
+                embeds = self.fe.get_embeddings(image, dets=dets)
 
                 if embeds is None:
                     continue
@@ -115,13 +117,16 @@ class FaceRecognition:
                     target_images.append(image)
 
             t2 = time.time()
+
+            for d in dets:
+                boxes.append(d)
             
             print("Time taken to extract embedding: %f"  %(t2-t1))
             
         print(np.array(target_embeddings).shape)
         print(np.array(target_images).shape)
         
-        self._calculate_matches(target_embeddings=target_embeddings, threshold = distance_threshold, target_images=target_images, metric=metric)
+        self._calculate_matches(target_embeddings=target_embeddings, dets = boxes, threshold = distance_threshold, target_images=target_images, metric=metric)
 
 ###################################################################################################################################
 
@@ -244,7 +249,7 @@ class FaceRecognition:
         @:param: target_embeddings - List of embeddings to match with the dataset embeddings
         @:param: target_images  - List of images for which to perform face recognition
     '''
-    def _calculate_matches(self, target_embeddings, target_images, threshold = 0.5, metric = "euclidean"):
+    def _calculate_matches(self, target_embeddings, target_images, dets, threshold = 0.5, metric = "euclidean"):
         
         matches = []
         names = []
@@ -288,18 +293,25 @@ class FaceRecognition:
                 cv2.imshow("Match", m)
                 cv2.waitKey(0)'''
 
+            if fdm == "CNN":
+                box = dets[num].rect
+            else:
+                box = dets[num]
+
             if len(names) > 0:
                 print(Counter(names))
                 most_common, num_most_common = Counter(names).most_common(1)[0]
 
                 if num_most_common > 2:
-                    cv2.putText(target_images[num], str(most_common), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+
+
+                    cv2.putText(target_images[num], str(most_common), (box.left() - 15, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
                 else:
-                    cv2.putText(target_images[num], "Unknown", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                    cv2.putText(target_images[num], "Unknown", (box.left() - 15, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
             else:
-                cv2.putText(target_images[num], "Unknown", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                cv2.putText(target_images[num], "Unknown", (box.left() - 15, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
 
             cv2.imshow("Match", target_images[num])
@@ -426,7 +438,7 @@ if __name__ == '__main__':
 
     # Perform face recognition on image directory
     if not use_cam and not use_vid:
-        fr.recognize(target_path=test_ip, distance_threshold=0.55, metric="euclidean_numpy")
+        fr.recognize(target_path=test_ip, distance_threshold=0.55, metric="euclidean_numpy", allign=False)
 
     # Face recognition on webcam or video input feed
     else:
