@@ -145,10 +145,10 @@ def parse_args():
     ap = argparse.ArgumentParser()
 
     ap.add_argument("-id", "--image_dir", required=True, help="Path for the images")
-    ap.add_argument("-fd", "--face_detection", choices=["CNN", "HOG"], required=False,
+    ap.add_argument("-fd", "--face_detection_method", choices=["CNN", "HOG"], required=False,
                     help="type of face detection using HOG or deep learning CNN", default="CNN")
 
-    ap.add_argument("-fl", "--face_landmarks", choices=["68", "5"], required=False,
+    ap.add_argument("-fl", "--face_landmarks_method", choices=["68", "5"], required=False,
                     help="Whether to use a 68-point or 5-point based landmark detection model", default="68")
 
     ap.add_argument("-mp", "--multi_proc", required=False, default=True, type=utilities.str2bool, nargs='?',
@@ -170,6 +170,7 @@ if __name__ == '__main__':
     image_paths = utilities.get_imagepaths(ip)
     #image_list = utilities.get_images(image_path=ip)
 
+    utilities.get_embeddings_at_path(image_path = ip)
 
     for image_path in image_paths:
 

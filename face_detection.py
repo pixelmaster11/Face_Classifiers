@@ -5,6 +5,7 @@ import imutils
 from imutils import face_utils, paths
 import numpy as np
 from face_allignment import FaceAlligner
+import dlib.cuda as cuda
 
 '''
 This class handles all functions related to face processing.
@@ -15,8 +16,13 @@ Functions like detecting faces, alligning them, slicing them is handled here
 class FaceDetection:
 
     # Load the face detection and recognition models
-    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68"):
+    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True):
 
+        # Initialize GPU usage
+        cuda.set_device(0)
+        dlib.DLIB_USE_CUDA = use_gpu
+        
+        print("Using GPU %s" %str(use_gpu))
 
         # Load and set appropriate 68point and 5 point face landmark detection models
         self.shape_68_face_landmarks = dlib.shape_predictor("Dlib\shape_predictor_68_face_landmarks.dat")
@@ -50,6 +56,9 @@ class FaceDetection:
         else:
             print("Please provide HOG or CNN as string parameters for face detection model")
             exit()
+
+
+
 
 ###########################################################################
 

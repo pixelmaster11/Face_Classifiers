@@ -6,8 +6,11 @@ import matplotlib.pyplot as plt
 import dlib
 from face_detection import FaceDetection
 from imutils import paths
-import dlib.cuda as cuda
+
 import dlib
+import os
+import utilities
+import pickle
 
 '''
 This class handles computation of different image and face image encodings
@@ -20,14 +23,10 @@ class Face_Encoding:
 #########################################################################################################
 
 
-    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68"):
+    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True):
 
-        cuda.set_device(0)
-        dlib.DLIB_USE_CUDA = True
-        self.fd_model = face_detection_model
-        self.fl_model = face_landmark_model
-        self.facerec = dlib.face_recognition_model_v1("Dlib/dlib_face_recognition_resnet_model_v1.dat")
-        self.fd = FaceDetection(face_detection_model=face_detection_model , face_landmark_model=face_landmark_model)
+        self.facerec_model = dlib.face_recognition_model_v1("Dlib/dlib_face_recognition_resnet_model_v1.dat")
+        self.fd = FaceDetection(face_detection_model=face_detection_model , face_landmark_model=face_landmark_model, use_gpu=use_gpu)
 
 
 #########################################################################################################
@@ -194,7 +193,7 @@ class Face_Encoding:
         descriptor - A List of descriptors of 128-Dimensions computed from a pretrained (dlib's model) cnn for all detected faces
         image - Original image with or without the face bounding box drawn
     '''
-    def compute_facenet_embedding_dlib(self, image, dets = None, shapes = None, upsample = 1, draw = False):
+    def _compute_facenet_embedding_dlib(self, image, dets = None, shapes = None, upsample = 1, draw = False):
 
 
         # Ask the detector to find the bounding boxes of each face. The 1 in the
@@ -208,7 +207,7 @@ class Face_Encoding:
         # To draw bounding box on the detected face
         if draw:
             color_green = (0, 255, 0)
-            line_width = 3
+            line_width = 2
 
             # If HOG based detection used
             if self.fd.detector == self.fd.hog_face_detector:
@@ -252,7 +251,7 @@ class Face_Encoding:
         # Compute descriptor for all landmarks incase of multiple faces in single image
         #
         for shape in shapes:
-            d = self.facerec.compute_face_descriptor(image, shape)
+            d = self.facerec_model.compute_face_descriptor(image, shape)
             descriptors.append(d)
 
 
@@ -304,11 +303,189 @@ class Face_Encoding:
             shapes = self.fd.detect_face_landmarks(dets=dets, image=image)
 
             for shape in shapes:
-                d = self.facerec.compute_face_descriptor(image, shape)
+                d = self.facerec_model.compute_face_descriptor(image, shape)
                 descriptors.append(d)
 
         return descriptors, image_list
 
+
+
+#########################################################################################################
+
+    # Get embeddings of a single image
+    '''
+    Params:
+        image - Image for which to calculate embeddings
+        dets - Face detections bounding box if done previously
+        
+    Returns:
+        descriptors - List of 128-D embeddings calculated for the given image 
+    '''
+    def get_embeddings(self,image, dets = None):
+
+        descriptors = []
+
+        # Extract the 128-D face embedding
+        embeddings, drawn_image = self._compute_facenet_embedding_dlib(image=image, draw=True, dets=dets)
+
+        if embeddings is None:
+            print("Could not extract descriptor")
+            return None
+
+        elif len(embeddings) == 0:
+            print("Could not extract descriptor")
+            return None
+
+        # For all embeddings returned in case of multiple faces in a single image
+        for e in embeddings:
+
+            if e is None:
+                continue
+
+            elif len(e) == 0:
+                continue
+
+            descriptors.append(e)
+
+        return descriptors
+
+#########################################################################################################
+
+    # This functions calculates embeddings for all images at the given image path
+    '''
+    Params:
+        image_path - Path for all the images
+        allign - Whether to allign images before computation for improved accuracy
+        resize - Whether to resize images before computation
+        save_to_file - Whether to save all generated embeddings to a file
+        save_path - Path where to save all the generated embeddings
+        filename - Embedding filename that will be generated after saving
+        
+    Returns:
+        A tuple of (embeddings list, labels list, image_paths list)
+    '''
+    def get_embeddings_at_path(self, image_path, allign=True, resize=False, save_to_file=True, save_path="Embeddings\\",
+                               filename="embeddings"):
+
+        if save_path is None:
+            save_path = "Embeddings\\"
+
+        print("\nCalculating embeddings from images at path %s" % image_path)
+        embeddings = []
+        alligned_images = []
+        labels = []
+        images = []
+
+        # Get all image filenames from the given image path directory
+        image_paths = utilities.get_imagepaths(image_path)
+
+        # For each image file path in the directory
+        for ip in image_paths:
+
+            # Load the image
+            print("\n" + ip)
+            image = cv2.imread(ip, cv2.IMREAD_UNCHANGED)
+
+            if resize:
+                image = cv2.resize(image, (500, 500))
+
+            if allign:
+                dets = fe.fd.detect_face(image=image)
+
+                if len(dets) > 0:
+                    alligned_images = self.fd.get_alligned_face(image=image, dets=dets)
+
+                # In case of multiple faces in single images
+                for image in alligned_images:
+
+                    e = self.get_embeddings(image, fe)
+                    if e is None:
+                        continue
+                    elif len(e) == 0:
+                        continue
+
+                    embeddings.append(e)
+                    labels.append(ip.split(os.sep)[-2])
+                    images.append(ip)
+
+            else:
+                embeds = self.get_embeddings(image, fe)
+
+                if embeds is None:
+                    continue
+
+                # For multiple faces in single image
+                for e in embeds:
+
+                    if e is None:
+                        continue
+                    elif len(e) == 0:
+                        continue
+
+                    embeddings.append(e)
+                    labels.append(ip.split(os.sep)[-2])
+                    images.append(ip)
+
+            print(np.array(embeddings).shape)
+            print(np.array(labels).shape)
+            print(np.array(images).shape)
+
+        if save_to_file:
+            self.save_embeddings(embeddings=embeddings, labels=labels, image_paths=images, save_path=save_path,
+                                 embed_filename=filename)
+
+        return embeddings, labels, image_paths
+
+
+#########################################################################################################
+
+    # This function saves the given embeddings / labels and image_paths to the file
+    '''
+    Params:
+        embeddings - A list of embeddings to save
+        labels - Corresponding list of labels
+        image_paths - Corresponding list of image_paths
+        save_path - Where to save the file
+        embed_filename - Name of the generated save file
+    '''
+    def save_embeddings(self, embeddings, labels, image_paths, save_path = "Embeddings\\", embed_filename = "embeddings"):
+
+        print("Total features {}".format(np.array(embeddings).shape))
+
+        # Create directory if it not exists
+        if not os.path.isdir(save_path):
+            os.mkdir(save_path)
+
+
+        output_path_embed = os.path.join(save_path, embed_filename) + ".pkl"
+
+        # Save features to file
+        print('Saved embeddings to file as {}'.format(output_path_embed))
+
+        data = embeddings, labels, image_paths
+
+        with open(output_path_embed, 'wb') as outfile:
+            pickle.dump(data, outfile)
+
+#########################################################################################################
+
+    # Loads embedding file from given load_path
+    '''
+    Params:
+        load_path - From where to load the embeddings file
+        embed_filename - Name of the file to be loaded
+    
+    Returns:
+        A tuple of (embeddings list, labels list, image_paths list)
+    '''
+    def load_embeddings(self, load_path = "Embeddings\\", embed_filename = "embeddings.pkl"):
+        # Loading Features
+        with open(load_path, "rb") as infile:
+            (dataset_embeddings, dataset_labels, dataset_imagepaths) = pickle.load(infile)
+
+        print("\nLoaded embeddings file from {}".format(load_path))
+
+        return dataset_embeddings, dataset_labels, dataset_imagepaths
 
 
 #########################################################################################################
@@ -376,7 +553,7 @@ class Face_Encoding:
 
 
         return edges
-        return edges.ravel(), edges
+        #return edges.ravel(), edges
 
 
 ###############################################
@@ -444,6 +621,11 @@ class Face_Encoding:
 
 
 
+
+
+
+
+
 if __name__ == '__main__':
 
     fe = Face_Encoding()
@@ -461,7 +643,7 @@ if __name__ == '__main__':
         #image = cv2.resize(image, (300, 300))
         #gray = cv2.resize(gray, (300, 300))
 
-        descriptor, image = fe.compute_facenet_embedding_dlib(image=image, draw=True)
+        descriptor, image = fe._compute_facenet_embedding_dlib(image=image, draw=True)
 
         hist, lbp_image = fe.get_local_binary_pattern(gray=gray)
 
