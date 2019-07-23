@@ -38,16 +38,30 @@ class FaceRecognition:
     # This function generates an embedding file for all the given images at the image_path
     '''
     @:param: image_path - Path for all the images of which to calculate and save embeddings
+    @:param: allign - Whether to allign images or not
+    @:param: resize - Whether to resize images
+    @:param: save - Whether to save generated embeddings to file
+    @:param: filename - Embbedings save filename
     '''
-    def generate_dataset(self, image_path):
+    def generate_dataset(self, image_path, allign = True, resize = False, save = True, filename = "embeddings_fr"):
         self.dataset_embeddings, \
         self.dataset_labels, \
-        self.dataset_imagepaths = self.fe.get_embeddings_at_path(image_path=image_path, resize=False, save_path=embed_svdir, save_to_file=True)
+        self.dataset_imagepaths = self.fe.get_embeddings_at_path(image_path=image_path, allign=allign,
+                                                                 resize=resize, save_path=embed_svdir, save_to_file=save ,
+                                                                 filename=filename)
+
+    def generate_dataset_batch(self, image_path, batch_size = 8, resizeX = 400, resizeY = 400):
+
+        self.dataset_embeddings, \
+        self.dataset_labels, \
+        self.dataset_imagepaths = self.fe.get_embeddings_batch(image_path=image_path, batch_size=batch_size,
+                                                               resizeX=resizeX, resizeeY=resizeY)
 
     # This function loads an already generated embedding file from the given load path
-    def load_dataset(self):
+    def load_dataset(self, filename):
 
-        (self.dataset_embeddings, self.dataset_labels, self.dataset_imagepaths) = self.fe.load_embeddings(load_path=embed_ldir)
+        (self.dataset_embeddings, self.dataset_labels, self.dataset_imagepaths) = self.fe.load_embeddings(load_path=embed_ldir,
+                                                                                                          embed_filename=filename)
 
         print("Total Embeddings {}".format(np.array(self.dataset_embeddings).shape))
         print("Total Labels {}".format(np.array(self.dataset_labels).shape))
@@ -61,12 +75,17 @@ class FaceRecognition:
         @:param: distance_threshold - Loose / Strict allowance of false matches
         @:param: metric - Metric used to calculate distance between embeddings. Choices are euclidean, euclidean_numpy, cosine
         @:param: allign - Whether to allign images for improved accuracy
+        @:param: reesize - Whether to resize images for memory allocs
     '''
-    def recognize(self, target_path, distance_threshold = 0.5, metric = "euclidean", allign = True):
+    def recognize(self, target_path, distance_threshold = 0.5, metric = "euclidean", allign = True, resize = False):
 
         target_embeddings = []
         target_images = []
         boxes = []
+
+        # Do not allign when using batched images
+        if use_batch:
+            allign = False
 
         print("\nRecognizing faces at path %s" % target_path)
 
@@ -77,6 +96,20 @@ class FaceRecognition:
             print("\n"+ip)
             image = cv2.imread(ip)
             t1 = time.time()
+
+            if (image.shape[1] > 1000 or image.shape[0] > 1000) and gpu:
+                resize = True
+            else:
+                resize = False
+
+            # Resize target images
+            if resize:
+                scale_percent = 50  # percent of original size
+                width = int(image.shape[1] * scale_percent / 100)
+                height = int(image.shape[0] * scale_percent / 100)
+                dim = (width, height)
+                # resize image
+                image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
             # Allign images
             if allign:
@@ -126,7 +159,8 @@ class FaceRecognition:
         print(np.array(target_embeddings).shape)
         print(np.array(target_images).shape)
         
-        self._calculate_matches(target_embeddings=target_embeddings, dets = boxes, threshold = distance_threshold, target_images=target_images, metric=metric)
+        self._calculate_matches(target_embeddings=target_embeddings, dets = boxes,
+                                threshold = distance_threshold, target_images=target_images, metric=metric)
 
 ###################################################################################################################################
 
@@ -197,7 +231,15 @@ class FaceRecognition:
 
                 target_embeddings.append(e)
 
+
+
             for num, target_embedding in enumerate(target_embeddings):
+
+                if fdm == "CNN":
+                    box = dets[num].rect
+                else:
+                    box = dets[num]
+
                 for i, d in enumerate(self.dataset_embeddings):
 
                     d = np.array(d)
@@ -212,7 +254,7 @@ class FaceRecognition:
                         #print(Counter(names))
                         most_common, num_most_common = Counter(names).most_common(1)[0]
 
-                        cv2.putText(rgb, str(most_common), (dets[0].rect.left() + 2, dets[0].rect.top() +5), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 1)
+                        cv2.putText(rgb, str(most_common), (box.left() - 15, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 1)
                         fourcc = cv2.VideoWriter_fourcc(*"MJPG")
                         writer = cv2.VideoWriter(video_output_path, fourcc, 20,(rgb.shape[1], rgb.shape[0]), True)
                     #else:
@@ -254,12 +296,23 @@ class FaceRecognition:
         matches = []
         names = []
 
+        print(np.array(self.dataset_embeddings).shape)
+
+        # Different shape returned when used batching
+        if use_batch:
+            axis = 0
+        else:
+            axis = 1
+
+
         for num, target_embedding in enumerate(target_embeddings):
             for i, d in enumerate(self.dataset_embeddings):
 
                 # convert dlib embedding vectors to numpy arrays
                 d = np.array(d)
                 target_embedding = np.array(target_embedding)
+
+
 
                 # Incase if some of the embeddings is Null skip it
                 if d.ndim == 0:
@@ -271,7 +324,7 @@ class FaceRecognition:
                                                             np.array(target_embedding, dtype=np.float32).reshape(-1, 1))
 
                 elif metric == "euclidean_numpy":
-                    target_distance = sm.euclidean_distance_numpy(x=d, y=target_embedding, axis=1)
+                    target_distance = sm.euclidean_distance_numpy(x=d, y=target_embedding, axis=axis)
 
                 elif metric == "cosine":
 
@@ -281,6 +334,7 @@ class FaceRecognition:
                 else:
                     print("Please provide metrics as euclidean, euclidean_numpy, cosine")
                     exit()
+
 
                 if target_distance < threshold:
                     matches.append(self.dataset_imagepaths[i])
@@ -305,13 +359,13 @@ class FaceRecognition:
                 if num_most_common > 2:
 
 
-                    cv2.putText(target_images[num], str(most_common), (box.left() - 15, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                    cv2.putText(target_images[num], str(most_common), (box.left() - 10, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
                 else:
-                    cv2.putText(target_images[num], "Unknown", (box.left() - 15, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                    cv2.putText(target_images[num], "Unknown", (box.left() - 10, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
             else:
-                cv2.putText(target_images[num], "Unknown", (box.left() - 15, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                cv2.putText(target_images[num], "Unknown", (box.left() - 10, box.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
 
             cv2.imshow("Match", target_images[num])
@@ -345,7 +399,13 @@ def parse_args():
                     "--embeddings_load_dir",
                     required=False,
                     help="Path where to load the saved embeddings file",
-                    default="Embeddings\\embeddings.pkl")
+                    default="Embeddings\\")
+
+    ap.add_argument("-ef",
+                    "--embed_filename",
+                    required=False,
+                    help="Name of saved embeddings file",
+                    default="embeddings.pkl")
 
     ap.add_argument("-eds",
                     "--embeddings_save_dir",
@@ -408,6 +468,22 @@ def parse_args():
                     nargs='?',
                     help="Whether to use a video for face recognition")
 
+
+    ap.add_argument("-b",
+                    "--use_batch",
+                    required=False,
+                    default=False,
+                    type=utilities.str2bool,
+                    nargs='?',
+                    help="Whether to use batching")
+
+    ap.add_argument("-bs",
+                    "--batch_size",
+                    required=False,
+                    type=int,
+                    default=8,
+                    help="The number images in a batch if using batching")
+
     return vars(ap.parse_args())
 
 if __name__ == '__main__':
@@ -426,19 +502,31 @@ if __name__ == '__main__':
     embed_ldir = args["embeddings_load_dir"]
     use_cam = args["use_cam"]
     use_vid = args["use_vid"]
+    use_batch = args["use_batch"]
+    batch_size = args["batch_size"]
+    filename = args["embed_filename"]
+
+    mode = "load"
+    embed_ldir = "Embeddings\\"
+    filename = "embeddings_fr.pkl"
+    gpu = True
 
 
-    fr = FaceRecognition(face_detection_model=fdm, face_landmark_model=flm)
+    fr = FaceRecognition(face_detection_model=fdm, face_landmark_model=flm, use_gpu=gpu)
 
     # Load embeddings else generate new ones
     if mode == "load":
-        fr.load_dataset()
+        fr.load_dataset(filename=filename)
     else:
-        fr.generate_dataset(image_path=ip)
+        if use_batch:
+            fr.generate_dataset_batch(image_path=ip, batch_size=batch_size)
+        else:
+            fr.generate_dataset(image_path=ip, allign=True, resize=False)
+
 
     # Perform face recognition on image directory
     if not use_cam and not use_vid:
-        fr.recognize(target_path=test_ip, distance_threshold=0.55, metric="euclidean_numpy", allign=False)
+        fr.recognize(target_path=test_ip, distance_threshold=0.6, metric="euclidean", allign=False, resize=False)
 
     # Face recognition on webcam or video input feed
     else:

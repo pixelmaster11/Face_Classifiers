@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from skimage import feature
 import matplotlib.pyplot as plt
-import dlib
+import multiprocessing as mp
 from face_detection import FaceDetection
 from imutils import paths
 
@@ -28,6 +28,10 @@ class Face_Encoding:
         self.facerec_model = dlib.face_recognition_model_v1("Dlib/dlib_face_recognition_resnet_model_v1.dat")
         self.fd = FaceDetection(face_detection_model=face_detection_model , face_landmark_model=face_landmark_model, use_gpu=use_gpu)
 
+        #For multiprocessing
+        self.embeddings = []
+        self.labels = []
+        self.image_paths = []
 
 #########################################################################################################
 
@@ -200,6 +204,7 @@ class Face_Encoding:
         # second argument indicates that we should upsample the image 1 time. This
         # will make everything bigger and allow us to detect more faces.
 
+
         if dets is None:
             dets = self.fd.detect_face(image=image, upsample=upsample)
 
@@ -268,28 +273,27 @@ class Face_Encoding:
         batch_size - Number of images to be inferrred for batching
         upsample - Number of times to upscale the image for better face detection accuracy
         draw - Whether to draw bounding box or not
-    
+        sizeX, sizeY - What value would the images be resized to if all are not equal
     Returns:
         descriptor - List of computed 128-D embeddings for given images
         image_list - Given list of images with or without bounding box drawn
     '''
-    def compute_facenet_embedding_dlib_batch(self, image_list, batch_size = 128, upsample=1, draw=False):
+    def _compute_facenet_embedding_dlib_batch(self, image_list, image_path, batch_size = 128, upsample=1, draw=False, sizeX = 400, sizeY=400):
 
 
-
-        dets = self.fd.detect_face_batch(image_list=image_list, batch_size=batch_size, upsample=upsample)
-
-
+        # Detect face in batches
+        dets = self.fd.detect_face_batch(image_list=image_list, batch_size=batch_size, upsample=upsample, sizeX=sizeX, sizeY=sizeY)
 
         # To draw bounding box on the detected face
         if draw:
             color_green = (0, 255, 0)
             line_width = 3
 
-            for i, d in enumerate(dets):
-                print("Detection {}: Left: {} Top: {} Right: {} Bottom: {} Confidence: {}".format(
-                    i, d.rect.left(), d.rect.top(), d.rect.right(), d.rect.bottom(), d.confidence))
-                cv2.rectangle(image_list[i], (d.rect.left(), d.rect.top(), d.rect.right(), d.rect.bottom()), color_green, line_width)
+            for i, det in enumerate(dets):
+                for d in det:
+                    print("Detection {}: Left: {} Top: {} Right: {} Bottom: {} Confidence: {}".format(
+                        i, d.rect.left(), d.rect.top(), d.rect.right(), d.rect.bottom(), d.confidence))
+                    cv2.rectangle(image_list[i], (d.rect.left(), d.rect.top(), d.rect.right(), d.rect.bottom()), color_green, line_width)
 
 
 
@@ -299,18 +303,27 @@ class Face_Encoding:
             return None, None
 
         descriptors = []
-        for image in image_list:
-            shapes = self.fd.detect_face_landmarks(dets=dets, image=image)
+        labels = []
+        images = []
+        image_paths = utilities.get_imagepaths(image_dir=image_path)
+
+        for image, det, ip in zip(image_list, dets, image_paths):
+
+
+            shapes = self.fd.detect_face_landmarks(dets=det, image=image)
 
             for shape in shapes:
                 d = self.facerec_model.compute_face_descriptor(image, shape)
                 descriptors.append(d)
+                labels.append(ip.split(os.sep)[-2])
+                images.append(ip)
 
-        return descriptors, image_list
+        return descriptors, labels, images
 
 
 
-#########################################################################################################
+    #########################################################################################################
+
 
     # Get embeddings of a single image
     '''
@@ -346,8 +359,35 @@ class Face_Encoding:
                 continue
 
             descriptors.append(e)
-
         return descriptors
+
+#########################################################################################################
+
+    # This functions computes embedding in batches
+    '''
+    Params:
+        image_path - Directory to of all images
+        batch_size - No. of images in a batch
+        upsample - Whether to upscale image for better face detection
+        draw - Draw bounding box on image
+        resizeX - Resize image width
+        resizeY - Resize image height
+        
+     Returns:
+        A tuple of (embeddings list, labels list, image_paths list)
+    '''
+    def get_embeddings_batch(self, image_path, batch_size = 128, upsample = 1, draw = True, resizeX = 400, resizeeY = 400):
+
+        # Get all image paths
+        images = utilities.get_images(image_path=image_path)
+
+        # Compute batched embeddings
+        embeddings, labels, image_paths = self._compute_facenet_embedding_dlib_batch(image_list=images, image_path=image_path,
+                                                                        batch_size=batch_size, upsample=upsample, draw=draw,
+                                                                              sizeX=resizeX, sizeY=resizeeY)
+
+
+        return embeddings, labels, image_paths
 
 #########################################################################################################
 
@@ -386,11 +426,25 @@ class Face_Encoding:
             print("\n" + ip)
             image = cv2.imread(ip, cv2.IMREAD_UNCHANGED)
 
+
+            # Scale large images when using GPU
+            if (image.shape[1] > 1000 or image.shape[0] > 1000) and dlib.DLIB_USE_CUDA:
+                resize = True
+            else:
+                resize = False
+
             if resize:
-                image = cv2.resize(image, (500, 500))
+
+                scale_percent = 50  # percent of original size
+                width = int(image.shape[1] * scale_percent / 100)
+                height = int(image.shape[0] * scale_percent / 100)
+                dim = (width, height)
+                # resize image
+                image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
 
             if allign:
-                dets = fe.fd.detect_face(image=image)
+                dets = self.fd.detect_face(image=image)
 
                 if len(dets) > 0:
                     alligned_images = self.fd.get_alligned_face(image=image, dets=dets)
@@ -398,7 +452,7 @@ class Face_Encoding:
                 # In case of multiple faces in single images
                 for image in alligned_images:
 
-                    e = self.get_embeddings(image, fe)
+                    e = self.get_embeddings(image)
                     if e is None:
                         continue
                     elif len(e) == 0:
@@ -409,7 +463,7 @@ class Face_Encoding:
                     images.append(ip)
 
             else:
-                embeds = self.get_embeddings(image, fe)
+                embeds = self.get_embeddings(image)
 
                 if embeds is None:
                     continue
@@ -480,10 +534,10 @@ class Face_Encoding:
     '''
     def load_embeddings(self, load_path = "Embeddings\\", embed_filename = "embeddings.pkl"):
         # Loading Features
-        with open(load_path, "rb") as infile:
+        with open(os.path.join(load_path, embed_filename), "rb") as infile:
             (dataset_embeddings, dataset_labels, dataset_imagepaths) = pickle.load(infile)
 
-        print("\nLoaded embeddings file from {}".format(load_path))
+        print("\nLoaded embeddings file from {}".format(load_path + embed_filename))
 
         return dataset_embeddings, dataset_labels, dataset_imagepaths
 

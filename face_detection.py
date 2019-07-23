@@ -145,7 +145,11 @@ class FaceDetection:
 
         try:
             # Get the detections in batches
-            dets = self.detector([image for image in image_list], upsample, batch_size)
+            #dets = self.detector([image for image in image_list], upsample, batch_size)
+            dets = self.detector(image_list, upsample, batch_size)
+
+            print("Detection type %s" % type(dets))
+            return dets
 
         # Check if all images have same sizes, if not then resize the images
         except RuntimeError as re:
@@ -161,11 +165,12 @@ class FaceDetection:
             image_list = resized_images
             del resized_images
 
-            # Get the detections for all images in batches
-            dets = self.detector([image for image in image_list], upsample, batch_size)
 
+            # Get the detections for all images in batches
+            #dets = self.detector([image for image in image_list], upsample, batch_size)
+            dets = self.detector(image_list, upsample, batch_size)
         # Return detections
-        finally:
+
             print("Detection type %s" %type(dets))
             return dets
 
@@ -465,7 +470,11 @@ if __name__ == "__main__":
         images.append(image)
 
     # Test with only last image from list which has 3 faces
-    dets = fd.detect_face(images[-2])
+    #dets = fd.detect_face(images[-2])
+
+    dets = fd.detect_face_batch(image_list=images)
+
+
 
     shapes = fd.detect_face_landmarks(images[-2], dets)
 

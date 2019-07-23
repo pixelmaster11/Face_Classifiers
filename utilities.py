@@ -12,11 +12,15 @@ Helper functions for quick image access
 def get_images(image_path, grayscale = False):
 
     images = []
-    [images.append(cv2.imread(os.path.join(image_path, ip), cv2.IMREAD_UNCHANGED)) if not grayscale
-     else images.append(cv2.imread(os.path.join(image_path, ip), cv2.IMREAD_GRAYSCALE ))
-     for ip in os.listdir(image_path)]
+    for ip in paths.list_images(image_path):
+        if grayscale:
+            img = cv2.imread(ip, cv2.IMREAD_GRAYSCALE)
+        else:
+            img = cv2.imread(ip)
 
-    print("Total images found {}".format(len(images)))
+        images.append(img)
+
+    print("\nTotal images found {}".format(len(images)))
     return images
 
 
