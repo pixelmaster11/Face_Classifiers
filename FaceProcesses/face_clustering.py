@@ -4,11 +4,12 @@ import cv2
 import dlib
 import os
 import numpy as np
-from face_encodings import Face_Encoding
+from FaceProcesses.face_encodings import Face_Encoding
+from FaceProcesses.face_allignment import FaceAlligner
 import similarity_metrics as sm
 import utilities
 from sklearn.cluster import DBSCAN
-from face_allignment import FaceAlligner
+
 
 '''
 This class is responsible for clustering of face images
@@ -163,7 +164,7 @@ if __name__ == '__main__':
     fe = Face_Encoding(face_detection_model="HOG", face_landmark_model="68")
     fc = FaceClustering()
     cluster_images = []
-    ip = "Images\\Face_Clustering\\"
+    ip = "../Images\\Face_Clustering\\"
 
 
 

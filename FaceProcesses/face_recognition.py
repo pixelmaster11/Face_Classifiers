@@ -9,7 +9,7 @@ import argparse
 import imutils
 from imutils.video import VideoStream
 from collections import Counter
-from face_encodings import Face_Encoding
+from FaceProcesses.face_encodings import Face_Encoding
 
 
 '''
@@ -386,20 +386,20 @@ def parse_args():
                     "--image_dir",
                     required=False,
                     help="Path for the image dataset",
-                    default="Images\\Face_Recognition\\")
+                    default="../Images\\Face_Recognition\\")
 
 
     ap.add_argument("-tid",
                     "--test_image_dir",
                     required=False,
                     help="Path for the test images",
-                    default="Images\\Test_Images\\Face_Recognition\\")
+                    default="../Images\\Test_Images\\Face_Recognition\\")
 
     ap.add_argument("-edl",
                     "--embeddings_load_dir",
                     required=False,
                     help="Path where to load the saved embeddings file",
-                    default="Embeddings\\")
+                    default="../Embeddings\\")
 
     ap.add_argument("-ef",
                     "--embed_filename",
@@ -411,7 +411,7 @@ def parse_args():
                     "--embeddings_save_dir",
                     required=False,
                     help="Path where to save the generated embeddings",
-                    default="Embeddings\\")
+                    default="../Embeddings\\")
 
     ap.add_argument("-fd",
                     "--face_detection_method",
@@ -507,7 +507,7 @@ if __name__ == '__main__':
     filename = args["embed_filename"]
 
     mode = "load"
-    embed_ldir = "Embeddings\\"
+    embed_ldir = "../Embeddings\\"
     filename = "embeddings_fr.pkl"
     gpu = True
 

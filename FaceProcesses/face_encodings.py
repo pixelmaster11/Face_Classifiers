@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from skimage import feature
 import matplotlib.pyplot as plt
-from face_detection import FaceDetection
+from FaceProcesses.face_detection import FaceDetection
 from imutils import paths
 import dlib
 import os
@@ -21,7 +21,7 @@ class Face_Encoding:
 #########################################################################################################
 
 
-    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True, dlib_models_dir = "Dlib"):
+    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True, dlib_models_dir = "../Dlib"):
 
         self.facerec_model = dlib.face_recognition_model_v1(os.path.join(dlib_models_dir , "dlib_face_recognition_resnet_model_v1.dat"))
 
@@ -404,11 +404,11 @@ class Face_Encoding:
     Returns:
         A tuple of (embeddings list, labels list, image_paths list)
     '''
-    def get_embeddings_at_path(self, image_path, allign=True, resize=False, save_to_file=True, save_path="Embeddings\\",
+    def get_embeddings_at_path(self, image_path, allign=True, resize=False, save_to_file=True, save_path="../Embeddings\\",
                                filename="embeddings"):
 
         if save_path is None:
-            save_path = "Embeddings\\"
+            save_path = "../Embeddings\\"
 
         print("\nCalculating embeddings from images at path %s" % image_path)
         embeddings = []
@@ -534,30 +534,6 @@ class Face_Encoding:
 
 
         return hist, edges
-
-###############################################
-
-    def canny_edge_detect_skimage(self, image, plot = False):
-        img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        image = cv2.GaussianBlur(img, (5, 5), 0)
-        #edges = feature.canny(imag, sigma=3,low_threshold=0.0375,high_threshold=0.0938)
-
-        edges = feature.canny(img, sigma=1)
-
-
-        if plot:
-            fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True,
-                                   figsize=(8, 4))
-
-            ax[0].imshow(image, cmap=plt.cm.gray)
-            ax[1].imshow(edges, cmap=plt.cm.gray)
-
-            plt.tight_layout()
-            plt.show()
-
-
-        return edges
-        #return edges.ravel(), edges
 
 
 ###############################################

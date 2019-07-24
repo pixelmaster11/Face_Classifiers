@@ -59,7 +59,7 @@ Params:
     embed_filename - Name of the generated save file
 '''
 
-def save_embeddings(embeddings, labels, image_paths, save_path="Embeddings\\", embed_filename="embeddings"):
+def save_embeddings(embeddings, labels, image_paths, save_path="../Embeddings\\", embed_filename="embeddings"):
 
     print("Total features {}".format(np.array(embeddings).shape))
 
@@ -89,7 +89,7 @@ Returns:
     A tuple of (embeddings list, labels list, image_paths list)
 '''
 
-def load_embeddings(load_path="Embeddings\\", embed_filename="embeddings.pkl"):
+def load_embeddings(load_path="../Embeddings\\", embed_filename="embeddings.pkl"):
     # Loading Features
     with open(os.path.join(load_path, embed_filename), "rb") as infile:
         (dataset_embeddings, dataset_labels, dataset_imagepaths) = pickle.load(infile)

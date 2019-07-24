@@ -4,7 +4,7 @@ import cv2
 import imutils
 from imutils import face_utils, paths
 import numpy as np
-from face_allignment import FaceAlligner
+from FaceProcesses.face_allignment import FaceAlligner
 import dlib.cuda as cuda
 
 '''
@@ -25,8 +25,8 @@ class FaceDetection:
         print("Using GPU %s" %str(use_gpu))
 
         # Load and set appropriate 68point and 5 point face landmark detection models
-        self.shape_68_face_landmarks = dlib.shape_predictor("Dlib\shape_predictor_68_face_landmarks.dat")
-        self.shape_5_face_landmarks = dlib.shape_predictor("Dlib\shape_predictor_68_face_landmarks.dat")
+        self.shape_68_face_landmarks = dlib.shape_predictor("../Dlib\shape_predictor_68_face_landmarks.dat")
+        self.shape_5_face_landmarks = dlib.shape_predictor("../Dlib\shape_predictor_68_face_landmarks.dat")
         print("Using {} points face landmark detection model".format(face_landmark_model))
 
 
@@ -42,7 +42,7 @@ class FaceDetection:
 
         # Load and set appropriate HOG and CNN based face detection model; CNN is extremely slower and needs a powerful GPU to run quickly
         self.hog_face_detector = dlib.get_frontal_face_detector()
-        self.cnn_face_detector = dlib.cnn_face_detection_model_v1("Dlib\mmod_human_face_detector.dat")
+        self.cnn_face_detector = dlib.cnn_face_detection_model_v1("../Dlib\mmod_human_face_detector.dat")
         self.faces = dlib.full_object_detections()
 
 
