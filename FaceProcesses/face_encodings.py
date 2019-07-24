@@ -7,7 +7,7 @@ from FaceProcesses.face_detection import FaceDetection
 from imutils import paths
 import dlib
 import os
-import utilities
+from Helper import utilities
 import pickle
 
 '''

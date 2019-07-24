@@ -6,8 +6,8 @@ import os
 import numpy as np
 from FaceProcesses.face_encodings import Face_Encoding
 from FaceProcesses.face_allignment import FaceAlligner
-import similarity_metrics as sm
-import utilities
+from Helper import similarity_metrics as sm
+from Helper import utilities
 from sklearn.cluster import DBSCAN
 
 

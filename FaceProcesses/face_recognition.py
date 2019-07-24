@@ -1,10 +1,11 @@
 
-import similarity_metrics as sm
+from Helper import similarity_metrics as sm
+from Helper import utilities
 import numpy as np
 import cv2
 import os
 import time
-import utilities
+
 import argparse
 import imutils
 from imutils.video import VideoStream

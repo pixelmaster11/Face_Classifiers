@@ -5,7 +5,7 @@ from sklearn.svm import LinearSVC, SVC
 from Classifiers import ml_utils
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import GridSearchCV
-import utilities
+from Helper import utilities
 from Classifiers.classifier import MLClassifier
 
 class SVMClassifier():
