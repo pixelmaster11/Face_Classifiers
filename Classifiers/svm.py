@@ -15,7 +15,7 @@ class SVMClassifier():
         self.name = model_name
 
         if model_name == "SVC":
-            self.model = SVC(gamma="scale")#verbose=0, C=1, random_state=11, gamma=1, kernel="rbf", degree=2, probability=True)
+            self.model = SVC(gamma="scale", random_state=22)
 
 
         elif model_name == "LinearSVC":
@@ -27,7 +27,6 @@ class SVMClassifier():
 
         # Scale the input features
         feat_train = ml_utils.get_scaing(scaling_type="Norm").fit(feat_train).transform(feat_train)
-
         print("Features after Scaling: {}".format(np.array(feat_train).shape))
 
         # C
@@ -58,7 +57,7 @@ class SVMClassifier():
                                            param_distributions=random_grid,
                                            n_iter=50,
                                            scoring='accuracy',
-                                           cv=5,
+                                           cv=4,
                                            verbose=1,
                                            random_state=22, n_jobs=-1)
 
@@ -66,27 +65,27 @@ class SVMClassifier():
 
         print("\nThe best hyperparameters from Random Search are:")
         print(random_search.best_params_)
-        print("")
         print("The mean accuracy of a model with these hyperparameters is:")
         print(random_search.best_score_)
 
-        self.find_best_model_grid(feat_train=feat_train, lab_train=lab_train)
+        #self.model = random_search.best_estimator_
 
-        self.model = random_search.best_estimator_
 
-    def find_best_model_grid(self, feat_train, lab_train):
+
+
+    def find_best_model_grid(self, feat_train, lab_train,):
 
         print("\nFinding best model using grid search..")
 
+
         # Scale the input features
         feat_train = ml_utils.get_scaing(scaling_type="Norm").fit(feat_train).transform(feat_train)
-
         print("Features after Scaling: {}".format(np.array(feat_train).shape))
 
         # Create the parameter grid based on the results of random search
-        C = [0.1, 1, 2, 5, 10, 100]
-        degree = [7, 8, 9]
-        gamma = [0.0001, 0.0005, 0.001, 0.01, 0.1, 1]
+        C = [1, 10, 100]
+        degree = [5,6,7]
+        gamma = [0.01, 0.1, 1]
         probability = [True]
 
 
@@ -96,8 +95,8 @@ class SVMClassifier():
             {'C': C, 'kernel': ['rbf'], 'gamma': gamma, 'probability': probability}
         ]
 
-
-        cv = ml_utils.get_spliting(n_splits=3, test_size=0.33, random_state=22)
+        # Get cross validation splits
+        cv = ml_utils.get_spliting(n_splits=10, test_size=0.3, random_state=22)
 
         # Instantiate the grid search model
         grid_search = GridSearchCV(estimator=self.model,
@@ -112,16 +111,19 @@ class SVMClassifier():
 
         print("\nThe best hyperparameters from Grid Search are:")
         print(grid_search.best_params_)
-        print("")
         print("The mean accuracy of a model with these hyperparameters is:")
         print(grid_search.best_score_)
+
+        # Assign the best model
         self.model = grid_search.best_estimator_
 
 if __name__ == '__main__':
 
     features, labels, ips = utilities.load_embeddings(load_path="../Embeddings/", embed_filename="embeddings.pkl")
     svm = SVMClassifier(model_name="SVC")
-    svm.find_best_model_random(feat_train=features, lab_train=labels)
-    ml_classifier = MLClassifier(ml_model=svm.model, model_name=svm.name)
 
-    ml_classifier.train_classifier(features=features, labels=labels)
+    #svm.find_best_model_random(feat_train=features, lab_train=labels)
+    #svm.find_best_model_grid(feat_train=features, lab_train=labels)
+
+    ml_classifier = MLClassifier(ml_model=svm.model, model_name=svm.name)
+    ml_classifier.train_classifier(features=features, labels=labels, save_model=True, save_name="face_recog")

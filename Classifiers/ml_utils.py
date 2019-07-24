@@ -6,6 +6,7 @@ from sklearn import metrics
 from matplotlib import pyplot as plt
 import numpy as np
 import os
+import csv
 import pickle
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -200,24 +201,39 @@ def plot_confusion_matrix(labels_actual, labels_predicted, classes,
 
 
 # Saves the given ml model to file
-def save_ml_model(ml_model, features, labels, save_dir = "MLModels\\"):
+def save_ml_model(ml_model, ml_name, features, labels, save_dir = "../MLModels"):
 
-    filename = ml_model + ".pkl"
+    filename = ml_name + ".pkl"
 
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
 
-    with open(save_dir + filename, 'wb') as outfile:
+    with open(os.path.join(save_dir, filename), 'wb') as outfile:
         pickle.dump((ml_model, labels, features), outfile)
-    print('Saved Best classifier model {} to file {}'.format(ml_model, save_dir + filename))
+    print('Saved Best classifier model {} to file {}'.format(ml_name, os.path.join(save_dir, filename)))
 
 # Loads the ml model from file
-def load_ml_model(load_dir = "MLModels\\", filename = ""):
+def load_ml_model(load_dir = "../MLModels", filename = ""):
 
-    with open(load_dir + filename, 'rb') as infile:
+    with open(os.path.join(load_dir, filename), 'rb') as infile:
         (ml_model, features, labels) = pickle.load(infile)
 
     print('Loaded classifier model %s from file "%s"' %(ml_model, load_dir+filename) )
 
     return ml_model, features, labels
 
+
+# Saves the classifier logs to a csv file
+def save_ml_model_log(ml_model, ml_name, save_dir = "MLModels", header = [], log = []):
+
+    filename = ml_name + ".csv"
+
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+
+    features_csv = open(os.path.join(save_dir, filename) , 'w', newline='')
+    writer = csv.writer(features_csv, delimiter=',')
+    writer.writerow(header)
+    writer.writerow(log)
+
+    print("File successfully saved as csv at path {}".format(os.path.join(save_dir, filename)))

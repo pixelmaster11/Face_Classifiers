@@ -1,0 +1,2 @@
+Model Name,Scaling,CV Split,CV Accuracy,Params,Train Time (sec)
+KNN,Norm,Shuffle,0.9228070175438597,"{'algorithm': 'auto', 'leaf_size': 1, 'metric': 'minkowski', 'metric_params': None, 'n_jobs': None, 'n_neighbors': 7, 'p': 2, 'weights': 'uniform'}",0.19655990600585938
