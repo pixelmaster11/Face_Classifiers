@@ -60,7 +60,7 @@ class FaceRecognition:
     # This function loads an already generated embedding file from the given load path
     def load_dataset(self, filename):
 
-        (self.dataset_embeddings, self.dataset_labels, self.dataset_imagepaths) = self.fe.load_embeddings(load_path=embed_ldir,
+        (self.dataset_embeddings, self.dataset_labels, self.dataset_imagepaths) = utilities.load_embeddings(load_path=embed_ldir,
                                                                                                           embed_filename=filename)
 
         print("Total Embeddings {}".format(np.array(self.dataset_embeddings).shape))

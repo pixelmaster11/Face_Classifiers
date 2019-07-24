@@ -3,10 +3,8 @@ import cv2
 import numpy as np
 from skimage import feature
 import matplotlib.pyplot as plt
-import multiprocessing as mp
 from face_detection import FaceDetection
 from imutils import paths
-
 import dlib
 import os
 import utilities
@@ -23,10 +21,12 @@ class Face_Encoding:
 #########################################################################################################
 
 
-    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True):
+    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True, dlib_models_dir = "Dlib"):
 
-        self.facerec_model = dlib.face_recognition_model_v1("Dlib/dlib_face_recognition_resnet_model_v1.dat")
+        self.facerec_model = dlib.face_recognition_model_v1(os.path.join(dlib_models_dir , "dlib_face_recognition_resnet_model_v1.dat"))
+
         self.fd = FaceDetection(face_detection_model=face_detection_model , face_landmark_model=face_landmark_model, use_gpu=use_gpu)
+
 
         #For multiprocessing
         self.embeddings = []
@@ -485,61 +485,11 @@ class Face_Encoding:
             print(np.array(images).shape)
 
         if save_to_file:
-            self.save_embeddings(embeddings=embeddings, labels=labels, image_paths=images, save_path=save_path,
+            utilities.save_embeddings(embeddings=embeddings, labels=labels, image_paths=images, save_path=save_path,
                                  embed_filename=filename)
 
         return embeddings, labels, image_paths
 
-
-#########################################################################################################
-
-    # This function saves the given embeddings / labels and image_paths to the file
-    '''
-    Params:
-        embeddings - A list of embeddings to save
-        labels - Corresponding list of labels
-        image_paths - Corresponding list of image_paths
-        save_path - Where to save the file
-        embed_filename - Name of the generated save file
-    '''
-    def save_embeddings(self, embeddings, labels, image_paths, save_path = "Embeddings\\", embed_filename = "embeddings"):
-
-        print("Total features {}".format(np.array(embeddings).shape))
-
-        # Create directory if it not exists
-        if not os.path.isdir(save_path):
-            os.mkdir(save_path)
-
-
-        output_path_embed = os.path.join(save_path, embed_filename) + ".pkl"
-
-        # Save features to file
-        print('Saved embeddings to file as {}'.format(output_path_embed))
-
-        data = embeddings, labels, image_paths
-
-        with open(output_path_embed, 'wb') as outfile:
-            pickle.dump(data, outfile)
-
-#########################################################################################################
-
-    # Loads embedding file from given load_path
-    '''
-    Params:
-        load_path - From where to load the embeddings file
-        embed_filename - Name of the file to be loaded
-    
-    Returns:
-        A tuple of (embeddings list, labels list, image_paths list)
-    '''
-    def load_embeddings(self, load_path = "Embeddings\\", embed_filename = "embeddings.pkl"):
-        # Loading Features
-        with open(os.path.join(load_path, embed_filename), "rb") as infile:
-            (dataset_embeddings, dataset_labels, dataset_imagepaths) = pickle.load(infile)
-
-        print("\nLoaded embeddings file from {}".format(load_path + embed_filename))
-
-        return dataset_embeddings, dataset_labels, dataset_imagepaths
 
 
 #########################################################################################################

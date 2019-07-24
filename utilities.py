@@ -3,6 +3,8 @@ import os
 import cv2
 import argparse
 from imutils import paths
+import numpy as np
+import pickle
 
 '''
 Helper functions for quick image access
@@ -45,8 +47,56 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+    #########################################################################################################
 
+# This function saves the given embeddings / labels and image_paths to the file
+'''
+Params:
+    embeddings - A list of embeddings to save
+    labels - Corresponding list of labels
+    image_paths - Corresponding list of image_paths
+    save_path - Where to save the file
+    embed_filename - Name of the generated save file
+'''
 
+def save_embeddings(embeddings, labels, image_paths, save_path="Embeddings\\", embed_filename="embeddings"):
+
+    print("Total features {}".format(np.array(embeddings).shape))
+
+    # Create directory if it not exists
+    if not os.path.isdir(save_path):
+        os.mkdir(save_path)
+
+    output_path_embed = os.path.join(save_path, embed_filename) + ".pkl"
+
+    # Save features to file
+    print('Saved embeddings to file as {}'.format(output_path_embed))
+
+    data = embeddings, labels, image_paths
+
+    with open(output_path_embed, 'wb') as outfile:
+        pickle.dump(data, outfile)
+
+#########################################################################################################
+
+# Loads embedding file from given load_path
+'''
+Params:
+    load_path - From where to load the embeddings file
+    embed_filename - Name of the file to be loaded
+
+Returns:
+    A tuple of (embeddings list, labels list, image_paths list)
+'''
+
+def load_embeddings(load_path="Embeddings\\", embed_filename="embeddings.pkl"):
+    # Loading Features
+    with open(os.path.join(load_path, embed_filename), "rb") as infile:
+        (dataset_embeddings, dataset_labels, dataset_imagepaths) = pickle.load(infile)
+
+    print("\nLoaded embeddings file from {}".format(load_path + embed_filename))
+
+    return dataset_embeddings, dataset_labels, dataset_imagepaths
 
 
 
