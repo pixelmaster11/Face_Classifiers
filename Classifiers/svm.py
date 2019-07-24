@@ -1,109 +1,127 @@
 
-import time
+
 import numpy as np
 from sklearn.svm import LinearSVC, SVC
 from Classifiers import ml_utils
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV
 import utilities
-
+from Classifiers.classifier import MLClassifier
 
 class SVMClassifier():
 
     def __init__(self, model_name = "SVC"):
 
-        self.features = []
-        self.labels = []
-        self.name = ""
+        self.name = model_name
 
         if model_name == "SVC":
-            self.model = SVC(gamma="scale", kernel="rbf", C=1)
-            self.name = "SVC"
+            self.model = SVC(gamma="scale")#verbose=0, C=1, random_state=11, gamma=1, kernel="rbf", degree=2, probability=True)
+
 
         elif model_name == "LinearSVC":
             self.model = LinearSVC(random_state=22, C=1)
-            self.name = "LinearSVC"
 
+    def find_best_model_random(self, feat_train, lab_train):
 
-
-
-        #[SVC(kernel='rbf', probability=True, C=0.2, random_state=22, max_iter=-1, gamma="scale",
-        #     decision_function_shape='ovr', shrinking=True,
-        #     degree=10, tol=0.001),
-        # LinearSVC(C = 1, random_state=22, max_iter=10000, fit_intercept=True, dual=True, intercept_scaling=1, loss='squared_hinge',
-        #         multi_class='ovr', penalty='l2', tol=0.0001),
-
-    def load_features(self, feature_dir, feature_filename):
-        self.features, self.labels, dataset_imagepaths =  utilities.load_embeddings(load_path=feature_dir, embed_filename=feature_filename)
-
-        feats = np.empty((len(self.labels), 128))
-
-        for i,feat in enumerate(self.features):
-
-            feat = np.array(feat).reshape(1,-1)
-            feats[i] = feat
-
-
-        self.features = feats
-        print("Loaded features and labels successfully %s %s" % ((np.array(self.features).shape), np.array(self.labels).shape))
-
-    def train_classifier(self):
-
-        print("\nTraining classifier..")
-
-        features = self.features
-        model = self.model
-        labels = self.labels
-
-        t1 = time.time()
+        print("\nFinding best parameters using random search..")
 
         # Scale the input features
-        features = ml_utils.get_scaing(scaling_type="Norm").fit(features).transform(features)
+        feat_train = ml_utils.get_scaing(scaling_type="Norm").fit(feat_train).transform(feat_train)
 
-        print("Features after Scaling: {}" .format(np.array(features).shape))
+        print("Features after Scaling: {}".format(np.array(feat_train).shape))
 
-        # Reduce dimensionality of features
-        #features = ml_utils.get_decomposition(dcomp_type="PCA").fit_transform(features)
-        print("Features after Decomposition {}" .format(np.array(features).shape))
+        # C
+        C = [.001, .01, 1, 10, 100]
 
-        # Split train and test sets
-        # 80% training and 20% test
-        feat_train, lab_train, feat_test, lab_test = ml_utils.split_train_data(features=features, labels=labels, test_percent=0.4)
+        # gamma
+        gamma = [.0001, .001, .01, .1, 1, 10, 100]
 
-        # Get type of cross validation splitting
-        cv = ml_utils.get_spliting("Kfold",n_splits=10)
+        # degree
+        degree = [1, 2, 3, 4, 5, 6, 7, 8, 9 , 10]
 
-        scores = ml_utils.calculate_cross_validate_score(ml_model=model, features=feat_train, labels=lab_train, cv = cv, verbose=0)
-        print("\nCV scores {}".format(scores))
-        print("CV Accuracy for %s : %0.2f (+/- %0.2f)" % (self.name, scores.mean(), scores.std() * 2))
+        # kernel
+        kernel = ['linear', 'rbf', 'poly']
+
+        # probability
+        probability = [True]
+
+        # Create the random grid
+        random_grid = {'C': C,
+                       'kernel': kernel,
+                       'gamma': gamma,
+                       'degree': degree,
+                       'probability': probability
+                       }
+
+        # Definition of the random search
+        random_search = RandomizedSearchCV(estimator=self.model,
+                                           param_distributions=random_grid,
+                                           n_iter=50,
+                                           scoring='accuracy',
+                                           cv=5,
+                                           verbose=1,
+                                           random_state=22, n_jobs=-1)
+
+        random_search.fit(feat_train, lab_train)
+
+        print("\nThe best hyperparameters from Random Search are:")
+        print(random_search.best_params_)
+        print("")
+        print("The mean accuracy of a model with these hyperparameters is:")
+        print(random_search.best_score_)
+
+        self.find_best_model_grid(feat_train=feat_train, lab_train=lab_train)
+
+        self.model = random_search.best_estimator_
+
+    def find_best_model_grid(self, feat_train, lab_train):
+
+        print("\nFinding best model using grid search..")
+
+        # Scale the input features
+        feat_train = ml_utils.get_scaing(scaling_type="Norm").fit(feat_train).transform(feat_train)
+
+        print("Features after Scaling: {}".format(np.array(feat_train).shape))
+
+        # Create the parameter grid based on the results of random search
+        C = [0.1, 1, 2, 5, 10, 100]
+        degree = [7, 8, 9]
+        gamma = [0.0001, 0.0005, 0.001, 0.01, 0.1, 1]
+        probability = [True]
 
 
-        # Test on test set
-
-        lab_pred = ml_utils.build_model(ml_model=model, features_train=feat_train, labels_train=lab_train, features_test=feat_test, predict=True)
-        accuracy = ml_utils.calculate_accuracy(labels_test=lab_test, labels_predicted=lab_pred)
-        print("\nAccuracy {}:".format(accuracy))
-
-        t2 = time.time()
-        print("\nTime taken to train classifier {} is: {} seconds".format(self.name, (t2 - t1)))
-
-        # Print the classification report for detailed summary
-        cr = ml_utils.build_classification_report(labels_actual=lab_test, labels_predicted=lab_pred, classes=labels)
-        print("\n"+cr)
-
-        plot_cm = True
-
-        if plot_cm:
-            ml_utils.plot_confusion_matrix(labels_actual=lab_test, labels_predicted=lab_pred, classes=labels)
-
-        save_model = False
-
-        if save_model:
-            ml_utils.save_ml_model(ml_model=model, features=features, labels=labels)
+        param_grid = [
+            {'C': C, 'kernel': ['linear'], 'probability': probability},
+            {'C': C, 'kernel': ['poly'], 'degree': degree, 'probability': probability},
+            {'C': C, 'kernel': ['rbf'], 'gamma': gamma, 'probability': probability}
+        ]
 
 
+        cv = ml_utils.get_spliting(n_splits=3, test_size=0.33, random_state=22)
+
+        # Instantiate the grid search model
+        grid_search = GridSearchCV(estimator=self.model,
+                                   param_grid=param_grid,
+                                   scoring='accuracy',
+                                   cv=cv,
+                                   verbose=1,
+                                   n_jobs=-1)
+
+        # Fit the grid search to the data
+        grid_search.fit(feat_train, lab_train)
+
+        print("\nThe best hyperparameters from Grid Search are:")
+        print(grid_search.best_params_)
+        print("")
+        print("The mean accuracy of a model with these hyperparameters is:")
+        print(grid_search.best_score_)
+        self.model = grid_search.best_estimator_
 
 if __name__ == '__main__':
 
+    features, labels, ips = utilities.load_embeddings(load_path="../Embeddings/", embed_filename="embeddings.pkl")
+    svm = SVMClassifier(model_name="SVC")
+    svm.find_best_model_random(feat_train=features, lab_train=labels)
+    ml_classifier = MLClassifier(ml_model=svm.model, model_name=svm.name)
 
-    svm = SVMClassifier()
-    svm.load_features(feature_dir="../Embeddings/",feature_filename="embeddings.pkl")
-    svm.train_classifier()
+    ml_classifier.train_classifier(features=features, labels=labels)

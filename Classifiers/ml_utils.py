@@ -40,10 +40,12 @@ def get_scaing(scaling_type = "Std"):
 def get_decomposition(dcomp_type = "TSNE", n_components = 2, neighbours = 5):
 
     if dcomp_type == "TSNE":
-        mod = TSNE(n_components=n_components, perplexity=neighbours, early_exaggeration=12.0,
+        '''mod = TSNE(n_components=n_components, perplexity=neighbours, early_exaggeration=12.0,
                    learning_rate=200.0, n_iter=1000, n_iter_without_progress=300,
                    min_grad_norm=1e-07, metric="euclidean",
-                   init="random", verbose=0, random_state=None, method="barnes_hut", angle=0.5)
+                   init="random", verbose=0, random_state=None, method="barnes_hut", angle=0.5)'''
+
+        mod = TSNE(n_components=n_components)
 
     elif dcomp_type == "PCA":
         mod = PCA(n_components=n_components)

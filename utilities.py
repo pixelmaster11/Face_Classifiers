@@ -96,6 +96,16 @@ def load_embeddings(load_path="Embeddings\\", embed_filename="embeddings.pkl"):
 
     print("\nLoaded embeddings file from {}".format(load_path + embed_filename))
 
+    feats = np.empty((len(dataset_labels), 128))
+
+    for i, feat in enumerate(dataset_embeddings):
+        feat = np.array(feat).reshape(1, -1)
+        feats[i] = feat
+
+    print("Loaded features and labels successfully %s %s" % ((np.array(feats).shape), np.array(dataset_labels).shape))
+
+    dataset_embeddings = feats
+
     return dataset_embeddings, dataset_labels, dataset_imagepaths
 
 
