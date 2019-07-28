@@ -107,21 +107,21 @@ def calculate_accuracy(labels_test, labels_predicted):
 
 # This function builds the given ml model and fits it with train features and labels and tests it on test features
 
-def build_model(ml_model, features_train, labels_train, features_test = [], predict = True):
+def build_model(ml_model, features_train, labels_train):
 
     ml_model.fit(features_train, labels_train)
+    return ml_model
 
-    if predict:
-        if len(features_test) == 0:
-            print("Please provide test features")
-            exit()
+# This function makes and returns the predictions made on the given test features
+def make_prediction(ml_model, features_test):
 
-        labels_predicted = ml_model.predict(features_test)
-        return labels_predicted
+    labels_predicted = ml_model.predict(features_test)
+    return labels_predicted
 
-    else:
-        return ml_model
 
+def prediction_probability(ml_model, features_test):
+    probabilities = ml_model.predictproba(features_test)
+    return probabilities
 
 
 def build_confusion_matrix(labels_actual, labels_predicted):
@@ -209,18 +209,19 @@ def save_ml_model(ml_model, ml_name, features, labels, save_dir = "../MLModels")
         os.makedirs(save_dir)
 
     with open(os.path.join(save_dir, filename), 'wb') as outfile:
-        pickle.dump((ml_model, labels, features), outfile)
+        pickle.dump((ml_model, ml_name, labels, features), outfile)
     print('Saved Best classifier model {} to file {}'.format(ml_name, os.path.join(save_dir, filename)))
+
 
 # Loads the ml model from file
 def load_ml_model(load_dir = "../MLModels", filename = ""):
 
     with open(os.path.join(load_dir, filename), 'rb') as infile:
-        (ml_model, features, labels) = pickle.load(infile)
+        (ml_model, ml_name, labels, features) = pickle.load(infile)
 
     print('Loaded classifier model %s from file "%s"' %(ml_model, load_dir+filename) )
 
-    return ml_model, features, labels
+    return ml_model, ml_name, labels, features
 
 
 # Saves the classifier logs to a csv file

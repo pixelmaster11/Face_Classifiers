@@ -12,10 +12,9 @@ class MLClassifier():
         self.name = model_name
         self.model = ml_model
 
-    def set_model(self, ml_model, model_name):
+    def load_model(self, filename, load_dir = "../MLModels"):
 
-        self.name = model_name
-        self.model = ml_model
+       self.model, self.name, labels_train, features_train = ml_utils.load_ml_model(load_dir=load_dir, filename=filename)
 
 
     def train_classifier(self, features, labels, scaling = "Norm", split = "Shuffle", decompose = False, dcomp = "TSNE",
@@ -51,21 +50,14 @@ class MLClassifier():
         print("\nCV scores {}".format(scores))
         print("CV Accuracy for %s : %0.2f (+/- %0.2f)" % (self.name, scores.mean(), scores.std() * 2))
 
-        # Test on test set
-        lab_pred = ml_utils.build_model(ml_model=model, features_train=feat_train, labels_train=lab_train,
-                                        features_test=feat_test, predict=True)
-        accuracy = ml_utils.calculate_accuracy(labels_test=lab_test, labels_predicted=lab_pred)
-        print("\nTest set Accuracy {}:".format(accuracy))
+        # Build the classifier model
+        model = ml_utils.build_model(ml_model=model, features_train=feat_train, labels_train=lab_train)
 
         t2 = time.time()
         print("\nTime taken to train classifier {} is: {} seconds".format(self.name, (t2 - t1)))
 
-        # Print the classification report for detailed summary
-        cr = ml_utils.build_classification_report(labels_actual=lab_test, labels_predicted=lab_pred, classes=labels)
-        print("\n" + cr)
-
-        if plot_cm:
-            ml_utils.plot_confusion_matrix(labels_actual=lab_test, labels_predicted=lab_pred, classes=labels)
+        # Test on test set
+        self.test_classifier(ml_model=model, test_features=feat_test, test_labels=lab_test, plot_cm=plot_cm)
 
         if save_model:
 
@@ -78,12 +70,36 @@ class MLClassifier():
             # Save train logs to csv
             ml_utils.save_ml_model_log(ml_model=model, ml_name=self.name + "_" + save_name, save_dir=save_dir, header=header, log=log)
 
+    def test_classifier(self, test_features, test_labels, ml_model = None, scale = False, scaling = "Norm", plot_cm = True):
+
+        if ml_model is None:
+            ml_model = self.model
+
+        if scale:
+            # Scale the input features
+            test_features = ml_utils.get_scaing(scaling_type=scaling).fit(test_features).transform(test_features)
+
+        lab_pred = ml_utils.make_prediction(ml_model=ml_model, features_test=test_features)
+        accuracy = ml_utils.calculate_accuracy(labels_test=test_labels, labels_predicted=lab_pred)
+
+        print("\nTest set Accuracy {}:".format(accuracy))
+
+
+        # Print the classification report for detailed summary
+        cr = ml_utils.build_classification_report(labels_actual=test_labels, labels_predicted=lab_pred, classes=test_labels)
+        print("\n" + cr)
+
+        if plot_cm:
+            ml_utils.plot_confusion_matrix(labels_actual=test_labels, labels_predicted=lab_pred, classes=test_labels)
 
 if __name__ == '__main__':
 
-    features, labels, ips = utilities.load_embeddings(load_path="../Embeddings/", embed_filename="embeddings.pkl")
+    features, labels, ips = utilities.load_embeddings(load_path="../Embeddings/", embed_filename="embeddings_ethnicity.pkl")
 
     svc = SVC(C=1, kernel="poly", max_iter=-1, degree=7, probability=True, gamma="scale")
     ml_cl = MLClassifier(ml_model=svc, model_name="SVC")
-    ml_cl.train_classifier(features=features,labels=labels)
+
+    ml_cl.train_classifier(features=features,labels=labels, save_model=True, save_name="ethnicity_recog")
+    #ml_cl.load_model(filename="SVC_gender_recog.pkl")
+    #ml_cl.test_classifier(test_features=features,test_labels=labels)
 

@@ -6,41 +6,112 @@ import argparse
 
 class GenerateDataset():
 
+##################################################################################################################################
+    '''
+    Params:
+        @:param: face_detetion_model - Type of face detection to use CNN or HOG
+        @:param: face_landmark_model - Type of face landmark detetction to use 68-point or 5-point based
+        @:param: use_gpu - Whether to use GPU during computation
+    '''
+##################################################################################################################################
+
     def __init__(self, face_detection_model="CNN", face_landmark_model="68", use_gpu=True):
 
         self.fe = Face_Encoding(face_detection_model=face_detection_model, face_landmark_model=face_landmark_model,
-                                use_gpu=use_gpu)
-        self.dataset_embeddings = None
-        self.dataset_labels = None
-        self.dataset_imagepaths = None
+                                use_gpu=use_gpu, verbose=1)
 
 
+
+###################################################################################################################################
+#
+# This function generates an embedding file for all the given images at the image_path
+#
+###################################################################################################################################
+    '''
+    Params:
+        @:param: image_dir- Path for all the images of which to calculate and save embeddings
+        @:param: allign - Whether to allign images or not
+        @:param: resize - Whether to resize images
+        @:param: save - Whether to save generated embeddings to file
+        @:param: filename - Embbedings save filename
+        @:param: save_dir - Path where the generated embeddings would be saved
+    
+    Returns:
+        @:returns: A tuple of (embeddings, labels, image_paths)
+        
+    '''
     def generate_dataset(self, image_dir, filename, save_dir="../Embeddings", allign=False, resize=False,save=True):
-        self.dataset_embeddings, \
-        self.dataset_labels, \
-        self.dataset_imagepaths = self.fe.get_embeddings_at_path(image_path=image_dir, allign=allign,
+        dataset_embeddings, \
+        dataset_labels, \
+        dataset_imagepaths = self.fe.get_embeddings_at_path(image_path=image_dir, allign=allign,
                                                                  resize=resize, save_path=save_dir, save_to_file=save,
                                                                  filename=filename)
 
+        return dataset_embeddings, dataset_labels, dataset_imagepaths
+
+    def generate_only_emebddings_at_path(self, image_dir, filename, save_dir="../Embeddings", allign=False, resize=False,save=True):
+
+        dataset_embeddings, \
+        dataset_boxes, \
+        dataset_imagepaths = self.fe.get_only_embeddings_at_path(image_path=image_dir, allign=allign,
+                                                            resize=resize, save_path=save_dir, save_to_file=save,
+                                                            filename=filename)
+
+        return dataset_embeddings, dataset_boxes, dataset_imagepaths
+
+###################################################################################################################################
+#
+# This functions computes and generates dataset in a batch
+#
+###################################################################################################################################
+    '''
+    Params:
+        @:param: image_path - Directory of image dataset
+        @:param: batch_size - Number of images to be batched together
+        @:param: resizeX , resizeY - Batching requires all images to be of same size. 
+                                     This will be size images will be resized to
+    
+    Returns:
+        @:returns: A tuple of (embeddings, labels, image_paths)
+    '''
     def generate_dataset_batch(self, image_path, batch_size=8, resizeX=400, resizeY=400):
-        self.dataset_embeddings, \
-        self.dataset_labels, \
-        self.dataset_imagepaths = self.fe.get_embeddings_batch(image_path=image_path, batch_size=batch_size,
+        dataset_embeddings, \
+        dataset_labels, \
+        dataset_imagepaths = self.fe.get_embeddings_batch(image_path=image_path, batch_size=batch_size,
                                                                resizeX=resizeX, resizeeY=resizeY)
 
-    # This function loads an already generated embedding file from the given load path
+        return dataset_embeddings, dataset_labels, dataset_imagepaths
+
+###################################################################################################################################
+#
+# This function loads an already generated embedding file from the given load path
+#
+###################################################################################################################################
+    '''
+    Params:
+        @:param: filename - Name of the embeddings/ feature file to load
+        @:param: load_dir - Path to the embeddings directory 
+        
+    Returns:
+        @:returns: A tuple of (embeddings, labels, image_paths)
+    '''
     def load_dataset(self, filename, load_dir):
-        (self.dataset_embeddings, self.dataset_labels, self.dataset_imagepaths) = utilities.load_embeddings(
+        (dataset_embeddings, dataset_labels, dataset_imagepaths) = utilities.load_embeddings(
             load_path=load_dir,
             embed_filename=filename)
 
-        print("Total Embeddings {}".format(np.array(self.dataset_embeddings).shape))
-        print("Total Labels {}".format(np.array(self.dataset_labels).shape))
-        print("Total Images {}".format(np.array(self.dataset_imagepaths).shape))
+        print("Total Embeddings {}".format(np.array(dataset_embeddings).shape))
+        print("Total Labels {}".format(np.array(dataset_labels).shape))
+        print("Total Images {}".format(np.array(dataset_imagepaths).shape))
+
+        return dataset_embeddings, dataset_labels, dataset_imagepaths
 
 
-
+####################################################################################################################################
+#
 # Construct the argument parser and parse the arguments
+#
+###################################################################################################################################
 def parse_args():
 
 
@@ -142,7 +213,7 @@ if __name__ == '__main__':
     use_batch = args["use_batch"]
     batch_size = args["batch_size"]
 
-    filename = "embeddings_gender"
+    filename = "embeddings_ethnicity1"
     mode = "save"
 
     gen = GenerateDataset(face_detection_model=fdm, face_landmark_model=flm, use_gpu=gpu)

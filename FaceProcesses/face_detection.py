@@ -16,18 +16,17 @@ Functions like detecting faces, alligning them, slicing them is handled here
 class FaceDetection:
 
     # Load the face detection and recognition models
-    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True):
+    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True, verbose = 1):
 
         # Initialize GPU usage
         cuda.set_device(0)
         dlib.DLIB_USE_CUDA = use_gpu
         
-        print("Using GPU %s" %str(use_gpu))
+
 
         # Load and set appropriate 68point and 5 point face landmark detection models
         self.shape_68_face_landmarks = dlib.shape_predictor("../Dlib\shape_predictor_68_face_landmarks.dat")
         self.shape_5_face_landmarks = dlib.shape_predictor("../Dlib\shape_predictor_68_face_landmarks.dat")
-        print("Using {} points face landmark detection model".format(face_landmark_model))
 
 
         if face_landmark_model == "68":
@@ -48,7 +47,6 @@ class FaceDetection:
 
 
 
-        print("Using {} face detection model".format(face_detection_model))
         if face_detection_model == "HOG":
             self.detector = self.hog_face_detector
         elif face_detection_model == "CNN":
@@ -57,10 +55,12 @@ class FaceDetection:
             print("Please provide HOG or CNN as string parameters for face detection model")
             exit()
 
+        if verbose == 1:
+            print("Using GPU %s" % str(use_gpu))
+            print("Using {} face detection model".format(face_detection_model))
+            print("Using {} points face landmark detection model".format(face_landmark_model))
 
-
-
-###########################################################################
+    ###########################################################################
 
     # Load the image from given image path
     '''
@@ -420,9 +420,10 @@ class FaceDetection:
         if len(shapes) == 0:
             shapes = self.detect_face_landmarks(image=image, dets=dets)
 
-
-        for shape in shapes:
-            win.add_overlay(shape, dlib.rgb_pixel(0,255,0))
+        # DOnly raw landmarks and display in dlib window if we are not returning the image
+        if not return_drawn_landmarks:
+            for shape in shapes:
+                win.add_overlay(shape, dlib.rgb_pixel(0,255,0))
 
         # Draw landmarks over the image using opencv line or circle to return the drawn image
         if return_drawn_landmarks:

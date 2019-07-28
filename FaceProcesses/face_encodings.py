@@ -20,12 +20,12 @@ class Face_Encoding:
 
 #########################################################################################################
 
-
-    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True, dlib_models_dir = "../Dlib"):
+    def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True, dlib_models_dir = "../Dlib", verbose = 1):
 
         self.facerec_model = dlib.face_recognition_model_v1(os.path.join(dlib_models_dir , "dlib_face_recognition_resnet_model_v1.dat"))
 
-        self.fd = FaceDetection(face_detection_model=face_detection_model , face_landmark_model=face_landmark_model, use_gpu=use_gpu)
+        self.fd = FaceDetection(face_detection_model=face_detection_model , face_landmark_model=face_landmark_model, use_gpu=use_gpu,
+                                verbose=verbose)
 
 
         #For multiprocessing
@@ -34,8 +34,10 @@ class Face_Encoding:
         self.image_paths = []
 
 #########################################################################################################
-
-    # Compute Local binary pattern of image
+#
+# Compute Local binary pattern of image
+#
+#########################################################################################################
     '''
     Params:
         gray - Grayscale image
@@ -69,8 +71,10 @@ class Face_Encoding:
         return hist, lbp
 
 #########################################################################################################
-
-    # Get color histogram for all color channels
+#
+# Get color histogram for all color channels
+#
+#########################################################################################################
     '''
     Params:
         image - RGB input image
@@ -91,8 +95,10 @@ class Face_Encoding:
         return hist_vector, image
 
 #########################################################################################################
-
-    #Get spatial histogram of the image
+#
+#Get spatial histogram of the image
+#
+#########################################################################################################
     '''
     Params:
         image - RGB input image
@@ -108,8 +114,10 @@ class Face_Encoding:
         return spatial_vector, image
 
 #########################################################################################################
-
-    #Get the hsv color channel histogram
+#
+# Get the hsv color channel histogram
+#
+#########################################################################################################
     '''
     Params:
         image - RGB input image
@@ -131,8 +139,10 @@ class Face_Encoding:
         return td_hist, image
 
 #########################################################################################################
-
-    #Get the Histogram of Oriented Gradients for the given  image
+#
+#Get the Histogram of Oriented Gradients for the given  image
+#
+#########################################################################################################
     '''
     Params:
         image - RGB image
@@ -183,8 +193,10 @@ class Face_Encoding:
         return np.array(hog_descriptor),hog_image
 
 #########################################################################################################
-
-    # Compute the 128-D face embedding for given image
+#
+# Compute the 128-D face embedding for given image
+#
+#########################################################################################################
     '''
     Params:
         image - Given RGB/Grayscale image
@@ -265,8 +277,10 @@ class Face_Encoding:
 
 
 #########################################################################################################
-
-    # Compute 128-D face embedding for given batch of image
+#
+# Compute 128-D face embedding for given batch of image
+#
+#########################################################################################################
     '''
     Params:
         image_list - List of images for computing 128-D face embedding
@@ -322,10 +336,11 @@ class Face_Encoding:
 
 
 
-    #########################################################################################################
-
-
-    # Get embeddings of a single image
+#########################################################################################################
+#
+# Get embeddings of a single image
+#
+#########################################################################################################
     '''
     Params:
         image - Image for which to calculate embeddings
@@ -334,12 +349,12 @@ class Face_Encoding:
     Returns:
         descriptors - List of 128-D embeddings calculated for the given image 
     '''
-    def get_embeddings(self,image, dets = None):
+    def get_embeddings(self,image, dets = None, draw = True):
 
         descriptors = []
 
         # Extract the 128-D face embedding
-        embeddings, drawn_image = self._compute_facenet_embedding_dlib(image=image, draw=True, dets=dets)
+        embeddings, drawn_image = self._compute_facenet_embedding_dlib(image=image, draw=draw, dets=dets)
 
         if embeddings is None:
             print("Could not extract descriptor")
@@ -362,8 +377,10 @@ class Face_Encoding:
         return descriptors
 
 #########################################################################################################
-
-    # This functions computes embedding in batches
+#
+# This functions computes embedding in batches
+#
+#########################################################################################################
     '''
     Params:
         image_path - Directory to of all images
@@ -390,8 +407,10 @@ class Face_Encoding:
         return embeddings, labels, image_paths
 
 #########################################################################################################
-
-    # This functions calculates embeddings for all images at the given image path
+#
+# This functions calculates embeddings for all images at the given image path
+#
+#########################################################################################################
     '''
     Params:
         image_path - Path for all the images
@@ -484,6 +503,7 @@ class Face_Encoding:
             print(np.array(labels).shape)
             print(np.array(images).shape)
 
+
         if save_to_file:
             utilities.save_embeddings(embeddings=embeddings, labels=labels, image_paths=images, save_path=save_path,
                                  embed_filename=filename)
@@ -492,9 +512,119 @@ class Face_Encoding:
 
 
 
-#########################################################################################################
 
-    #Get the canny edge histogram and the edged image
+#########################################################################################################
+#
+# This functions calculates only the embeddings for all images at the given image path
+#
+#########################################################################################################
+    '''
+    Params:
+        image_path - Path for all the images
+        allign - Whether to allign images before computation for improved accuracy
+        resize - Whether to resize images before computation
+        save_to_file - Whether to save all generated embeddings to a file
+        save_path - Path where to save all the generated embeddings
+        filename - Embedding filename that will be generated after saving
+    
+    Returns:
+        A tuple of (embeddings list, labels list, image_paths list)
+    '''
+
+    def get_only_embeddings_at_path(self, image_path, allign=True, resize=False, save_to_file=True, save_path="../Embeddings\\",
+                               filename="only_embeddings", draw = False):
+        if save_path is None:
+            save_path = "../Embeddings\\"
+
+        print("\nCalculating embeddings from images at path %s" % image_path)
+        embeddings = []
+        alligned_images = []
+        images = []
+        boxes = []
+
+        # Get all image filenames from the given image path directory
+        image_paths = utilities.get_imagepaths(image_path)
+
+        # For each image file path in the directory
+        for ip in image_paths:
+
+            # Load the image
+            print("\n" + ip)
+            image = cv2.imread(ip)
+
+            # Scale large images when using GPU
+            if (image.shape[1] > 1000 or image.shape[0] > 1000) and dlib.DLIB_USE_CUDA:
+                resize = True
+            else:
+                resize = False
+
+            if resize:
+                scale_percent = 50  # percent of original size
+                width = int(image.shape[1] * scale_percent / 100)
+                height = int(image.shape[0] * scale_percent / 100)
+                dim = (width, height)
+                # resize image
+                image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
+            if allign:
+                dets = self.fd.detect_face(image=image)
+
+                if len(dets) > 0:
+                    alligned_images = self.fd.get_alligned_face(image=image, dets=dets)
+
+                # In case of multiple faces in single images
+                for image in alligned_images:
+
+                    e = self.get_embeddings(image, draw=draw)
+                    if e is None:
+                        continue
+                    elif len(e) == 0:
+                        continue
+
+                    embeddings.append(e)
+                    images.append(ip)
+
+
+
+            else:
+                dets = self.fd.detect_face(image=image)
+
+                embeds = self.get_embeddings(image, dets=dets, draw=draw)
+
+                if embeds is None:
+                    continue
+
+                # For multiple faces in single image
+                for e in embeds:
+
+                    if e is None:
+                        continue
+                    elif len(e) == 0:
+                        continue
+
+                    embeddings.append(e)
+                    images.append(ip)
+
+            for d in dets:
+                boxes.append(d)
+
+            #print(np.array(embeddings).shape)
+            #print(np.array(images).shape)
+            #print(np.array(boxes).shape)
+
+
+
+        if save_to_file:
+            utilities.save_only_embeddings(embeddings=embeddings, boxes=boxes, image_paths=images, save_path=save_path,
+                                      embed_filename=filename)
+
+        return embeddings, boxes, images
+
+#########################################################################################################
+#
+# Get the canny edge histogram and the edged image
+#
+#########################################################################################################
     '''
     Params:
         image - Input RGB/Grayscale image
@@ -536,9 +666,11 @@ class Face_Encoding:
         return hist, edges
 
 
-###############################################
-
-    #Get the SIFT descriptor for the given image
+#########################################################################################################
+#
+#Get the SIFT descriptor for the given image
+#
+#########################################################################################################
     def compute_sift(self, gray):
 
         sift = cv2.xfeatures2d.SIFT_create()
@@ -553,9 +685,11 @@ class Face_Encoding:
 
         return  des, img
 
-###############################################
-
-
+#########################################################################################################
+#
+# Compute the daisy features of given image
+#
+#########################################################################################################
     def get_daisy_feature(self, gray):
 
 
@@ -564,10 +698,24 @@ class Face_Encoding:
 
         return daisy_desc, daisy_img
 
-###############################################
-
-
-
+#########################################################################################################
+#
+# Compute Histogram
+#
+#########################################################################################################
+    '''
+    Params:
+        @:param: image - Given image for which to compute histogram
+        @:param: normalize - Whether to normalize histogram
+        @:param: chans - Number of channels [0] - means grayscale [0,1,2] - All coloured channels
+        @:param: mask - Whether to apply any mask if provided
+        @:param: binCount - Number of bins to be represented as histograms
+        @:param: range - Range of values
+    
+    Returns:
+        @:returns: hist - Computed histogram vector of the given image 
+        
+    '''
     def compute_hist(self, image, normalize = True, chans = [0], mask = None, binCount = [256], range = [0,256]):
 
         hist = cv2.calcHist([image], chans, mask, binCount, range)

@@ -1,0 +1,2 @@
+Model Name,Scaling,CV Split,CV Accuracy,Params,Train Time (sec)
+SVC,Norm,Shuffle,0.9825396825396826,"{'C': 1, 'cache_size': 200, 'class_weight': None, 'coef0': 0.0, 'decision_function_shape': 'ovr', 'degree': 7, 'gamma': 'scale', 'kernel': 'poly', 'max_iter': -1, 'probability': True, 'random_state': None, 'shrinking': True, 'tol': 0.001, 'verbose': False}",1.289870262145996
