@@ -8,7 +8,7 @@ from imutils import paths
 import dlib
 import os
 from Helper import utilities
-import pickle
+
 
 '''
 This class handles computation of different image and face image encodings

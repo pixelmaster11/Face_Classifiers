@@ -1,17 +1,15 @@
 
 from Helper import similarity_metrics as sm
 from Helper import utilities
+from Helper.generate_dataset import GenerateDataset
 import numpy as np
 import cv2
-import os
 import time
-
 import argparse
 import imutils
 from imutils.video import VideoStream
 from collections import Counter
-from FaceProcesses.face_encodings import Face_Encoding
-from Helper.generate_dataset import GenerateDataset
+
 
 '''
 This class handles all face recognition stuff. 

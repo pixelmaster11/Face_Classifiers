@@ -1,0 +1,2 @@
+Model Name,Scaling,CV Split,CV Accuracy,Train Accuracy ,Test Accuracy,Params,Train Time (sec)
+MN_NaiveBayes,MinMax,Shuffle,0.8935251798561152,0.9,0.8954248366013072,"{'alpha': 1.0, 'class_prior': None, 'fit_prior': True}",1.1948330402374268

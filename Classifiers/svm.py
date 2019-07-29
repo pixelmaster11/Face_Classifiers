@@ -1,5 +1,4 @@
 
-
 import numpy as np
 from sklearn.svm import LinearSVC, SVC
 from Classifiers import ml_utils
@@ -7,11 +6,22 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import GridSearchCV
 from Helper import utilities
 from Classifiers.classifier import MLClassifier
+from Classifiers.base_classifier import BaseClassifier
 
-class SVMClassifier():
 
+
+class SVMClassifier(BaseClassifier):
+
+#########################################################################################################
+    '''
+        Initialize the classifier model
+    '''
+#########################################################################################################
     def __init__(self, model_name = "SVC"):
 
+        super().__init__()
+
+        self.args = self.parse_args()
         self.name = model_name
 
         if model_name == "SVC":
@@ -20,6 +30,17 @@ class SVMClassifier():
 
         elif model_name == "LinearSVC":
             self.model = LinearSVC(random_state=22, C=1)
+
+#########################################################################################################
+#
+# Find best parameters using random search
+#
+#########################################################################################################
+    '''
+    Params:
+        @:param: feat_train - Training features
+        @:param: lab_train - Training labels
+    '''
 
     def find_best_model_random(self, feat_train, lab_train):
 
@@ -71,7 +92,17 @@ class SVMClassifier():
         #self.model = random_search.best_estimator_
 
 
-
+#########################################################################################################
+#
+# Find best parameters using a much deeper grid based search with parameters set around those
+# found in random search
+#
+#########################################################################################################
+    '''
+    Params:
+        @:param: feat_train - Training features
+        @:param: lab_train - Training labels
+    '''
 
     def find_best_model_grid(self, feat_train, lab_train,):
 
@@ -119,11 +150,21 @@ class SVMClassifier():
 
 if __name__ == '__main__':
 
-    features, labels, ips = utilities.load_embeddings(load_path="../Embeddings/", embed_filename="embeddings.pkl")
+    # Create the classifier
     svm = SVMClassifier(model_name="SVC")
 
-    #svm.find_best_model_random(feat_train=features, lab_train=labels)
-    #svm.find_best_model_grid(feat_train=features, lab_train=labels)
+    # Load features and labels
+    features, labels, ips = utilities.load_embeddings(load_path=svm.args["embed_load_dir"],
+                                                      embed_filename= svm.args["embed_filename"])
 
+    # Train using default params
     ml_classifier = MLClassifier(ml_model=svm.model, model_name=svm.name)
-    ml_classifier.train_classifier(features=features, labels=labels, save_model=True, save_name="face_recog")
+    ml_classifier.train_classifier(features=features, labels=labels, save_model=svm.args["save_model"], save_name=svm.args["model_filename"])
+
+    # Find the best params
+    svm.find_best_model_random(feat_train=features, lab_train=labels)
+    svm.find_best_model_grid(feat_train=features, lab_train=labels)
+
+    # Train with best found params
+    ml_classifier.set_model(ml_model=svm.model)
+    ml_classifier.train_classifier(features=features, labels=labels, save_model=svm.args["save_model"], save_name=svm.args["model_filename"])

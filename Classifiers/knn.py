@@ -3,15 +3,47 @@ import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 from Classifiers import ml_utils
 from Classifiers.classifier import MLClassifier
+from Classifiers.base_classifier import BaseClassifier
 from sklearn.model_selection import GridSearchCV
 
-class KNNClassifier():
+class KNNClassifier(BaseClassifier):
+
+#########################################################################################################
+#
+# Initiallize the ml model
+#
+#########################################################################################################
 
     def __init__(self, model_name="KNN"):
 
+        super().__init__()
         self.name = model_name
         self.model = KNeighborsClassifier()
 
+#########################################################################################################
+#
+# Find best parameters using random search
+#
+#########################################################################################################
+    '''
+    Params:
+        @:param: feat_train - Training features
+        @:param: lab_train - Training labels
+    '''
+    def find_best_model_random(self, feat_train, lab_train):
+        pass
+
+#########################################################################################################
+#
+# Find best parameters using a much deeper grid based search with parameters set around those
+# found in random search
+#
+#########################################################################################################
+    '''
+    Params:
+        @:param: feat_train - Training features
+        @:param: lab_train - Training labels
+    '''
     def find_best_model_grid(self, feat_train, lab_train):
 
         print("\nFinding best model using grid search..")
@@ -49,9 +81,20 @@ class KNNClassifier():
 
 if __name__ == '__main__':
 
-    features, labels, ips = utilities.load_embeddings(load_path ="../Embeddings/", embed_filename="embeddings.pkl")
-
+    # Create the ml model
     knn = KNNClassifier()
-    knn.find_best_model_grid(feat_train=features,lab_train=labels)
+
+    # Load features and labels
+    features, labels, ips = utilities.load_embeddings(load_path = knn.args["embed_load_dir"], embed_filename=knn.args["embed_filename"])
+
+    # Train with default params
     ml_classifier = MLClassifier(ml_model=knn.model, model_name=knn.name)
-    ml_classifier.train_classifier(features=features, labels=labels, save_model=True, save_name="face_recog")
+    ml_classifier.train_classifier(features=features, labels=labels, save_model=knn.args["save_model"],
+                                   save_name=knn.args["model_filename"])
+
+    # Find best params
+    knn.find_best_model_grid(feat_train=features,lab_train=labels)
+
+    # Train with best params
+    ml_classifier.train_classifier(features=features, labels=labels, save_model=knn.args["save_model"],
+                                   save_name=knn.args["model_filename"])

@@ -5,28 +5,82 @@ import numpy as np
 import time
 from sklearn.svm import LinearSVC, SVC
 
+'''
+This class is responsible for training the provided ML Model.
+Performs cross validation and / or testing with different test dataset or using train / test split 
+'''
 class MLClassifier():
+
+#########################################################################################################
+#
+# Initialize the classifier with give model
+#
+#########################################################################################################
 
     def __init__(self, ml_model = None, model_name=""):
 
         self.name = model_name
         self.model = ml_model
 
+#########################################################################################################
+#
+# Sets the ml model to the provided model
+#
+#########################################################################################################
+    '''
+    Params:
+        @:param: ml_model - ML model to set
+    '''
+    def set_model(self, ml_model):
+        self.model = ml_model
+
+#########################################################################################################
+#
+# Loads a saved ml clasifier model
+#
+#########################################################################################################
+
+    '''
+    Params:
+        @:param: filename - Name of the saved ml classifier model file
+        @:param: load_dir - Directory from where to load the ml model
+    '''
+
     def load_model(self, filename, load_dir = "../MLModels"):
 
        self.model, self.name, labels_train, features_train = ml_utils.load_ml_model(load_dir=load_dir, filename=filename)
 
 
+#########################################################################################################
+#
+# Trains the classifier model
+#
+#########################################################################################################
+
+    '''
+    Params:
+        @:param: features - Input features
+        @:param: labels - Corresponding input labels
+        @:param: scaling - Type of scaling to be applied on the input features
+        @:param: split - Type of splitting to be used for cross validation
+        @:param: decompose - Whether to use PCA / TSNE decomposition or not
+        @:param: dcomp - Type of decomposition to be used if any
+        @:param: save_model - Whether to save this classifier model to file
+        @:param: save_dir - Path where the ml model would be saved
+        @:param: save_name - Filename to be used during save
+        @:param: plot_cm - Whether to plot the confusion matrix
+        @:param: test_percent - Percent of input data to be used as test data
+    '''
     def train_classifier(self, features, labels, scaling = "Norm", split = "Shuffle", decompose = False, dcomp = "TSNE",
-                         save_model=False, save_dir="../MLModels", save_name = "", plot_cm = True):
+                         save_model=False, save_dir="../MLModels", save_name = "", plot_cm = True, test_percent = 0.33):
 
-
+        # Assign the current ml model
         model = self.model
 
-        print("\nTraining classifier %s ..." % (self.name))
-
+        print("\nTraining classifier %s using following parameters.." % (self.name))
         print(self.model.get_params())
 
+        # Calculate time taken to train classifier
         t1 = time.time()
 
         # Scale the input features
@@ -40,13 +94,14 @@ class MLClassifier():
 
         # Split train and test sets
         feat_train, lab_train, feat_test, lab_test = ml_utils.split_train_data(features=features, labels=labels,
-                                                                               test_percent=0.33, random_state=22)
+                                                                               test_percent=test_percent, random_state=22)
 
         # Get type of cross validation splitting
         cv = ml_utils.get_spliting(split, n_splits=10, test_size=0.3, random_state=22)
 
-        scores = ml_utils.calculate_cross_validate_score(ml_model=model, features=feat_train, labels=lab_train, cv=cv,
-                                                         verbose=0)
+        # Get the CV scores
+        scores = ml_utils.calculate_cross_validate_score(ml_model=model, features=features, labels=labels, cv=cv, verbose=0)
+
         print("\nCV scores {}".format(scores))
         print("CV Accuracy for %s : %0.2f (+/- %0.2f)" % (self.name, scores.mean(), scores.std() * 2))
 
@@ -56,22 +111,44 @@ class MLClassifier():
         t2 = time.time()
         print("\nTime taken to train classifier {} is: {} seconds".format(self.name, (t2 - t1)))
 
+        # Test on train set
+        train_accuracy = self.test_classifier(ml_model=model, test_features=feat_train, test_labels=lab_train, plot_cm=False, title="Train Accuracy")
+
         # Test on test set
-        self.test_classifier(ml_model=model, test_features=feat_test, test_labels=lab_test, plot_cm=plot_cm)
+        test_accuracy = self.test_classifier(ml_model=model, test_features=feat_test, test_labels=lab_test, plot_cm=plot_cm)
 
         if save_model:
 
             # Pickle model
             ml_utils.save_ml_model(ml_model=model, ml_name=self.name + "_" + save_name, features=features, labels=labels, save_dir=save_dir)
 
-            header = ['Model Name', "Scaling", "CV Split", "CV Accuracy", "Params", "Train Time (sec)"]
-            log = [self.name, scaling, split, scores.mean(), model.get_params(), (t2-t1)]
+            header = ['Model Name', "Scaling", "CV Split", "CV Accuracy", "Train Accuracy ", "Test Accuracy", "Params", "Train Time (sec)"]
+            log = [self.name, scaling, split, scores.mean(), train_accuracy, test_accuracy, model.get_params(), (t2-t1)]
 
             # Save train logs to csv
             ml_utils.save_ml_model_log(ml_model=model, ml_name=self.name + "_" + save_name, save_dir=save_dir, header=header, log=log)
 
-    def test_classifier(self, test_features, test_labels, ml_model = None, scale = False, scaling = "Norm", plot_cm = True):
+#########################################################################################################
+#
+# Test the model on a test set
+#
+#########################################################################################################
 
+    '''
+    Params:
+        @:param: test_features - Features to test
+        @:param: test_labels - Corresponding test labels
+        @:param: ml_model - Classifier model
+        @:param: scale - Whether to scale the features
+        @:param: scaling - Type of scaling to apply if any
+        @:param: plot_cm - Whether to plot the confusion matrix
+    
+    Returns:
+        @:returns: accuracy - Returns the accuracy
+    '''
+    def test_classifier(self, test_features, test_labels, ml_model = None, scale = False, scaling = "Norm", plot_cm = True, title  = "Test Accuracy"):
+
+        # Set the current model if provided model is none
         if ml_model is None:
             ml_model = self.model
 
@@ -82,7 +159,8 @@ class MLClassifier():
         lab_pred = ml_utils.make_prediction(ml_model=ml_model, features_test=test_features)
         accuracy = ml_utils.calculate_accuracy(labels_test=test_labels, labels_predicted=lab_pred)
 
-        print("\nTest set Accuracy {}:".format(accuracy))
+        print("\n" + title + " {}:".format(accuracy))
+        #print("\nTest set Accuracy {}:".format(accuracy))
 
 
         # Print the classification report for detailed summary
@@ -91,6 +169,8 @@ class MLClassifier():
 
         if plot_cm:
             ml_utils.plot_confusion_matrix(labels_actual=test_labels, labels_predicted=lab_pred, classes=test_labels)
+
+        return accuracy
 
 if __name__ == '__main__':
 
