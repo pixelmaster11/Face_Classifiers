@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     # Train with default params
     ml_classifier = MLClassifier(ml_model=mn_nb.model, model_name=mn_nb.name)
-    
+
     # Train using MinMax scaling to remove -ve values as MN NM does not support -ve values
     # Make sure to remove -ve values before feeding them to classifier
     ml_classifier.train_classifier(features=features, labels=labels, save_model=mn_nb.args["save_model"],

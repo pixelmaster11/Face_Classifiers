@@ -15,7 +15,18 @@ Functions like detecting faces, alligning them, slicing them is handled here
 
 class FaceDetection:
 
-    # Load the face detection and recognition models
+###########################################################################
+#
+# Load the face detection and recognition models
+#
+###########################################################################
+    '''
+    Params:
+        @:param: face_detection_model - Type of face detection method to use, HOG or CNN
+        @:param: face_landmark_model - Type of face landmark detection template to use either 68-point or 5-point based
+        @:param: use_gpu - Whether to use GPU for computation wherever applicable
+        @:param: verbose - Whether to enable / disable messages
+    '''
     def __init__(self, face_detection_model = "HOG", face_landmark_model = "68", use_gpu = True, verbose = 1):
 
         # Initialize GPU usage
@@ -60,9 +71,11 @@ class FaceDetection:
             print("Using {} face detection model".format(face_detection_model))
             print("Using {} points face landmark detection model".format(face_landmark_model))
 
-    ###########################################################################
-
-    # Load the image from given image path
+###########################################################################
+#
+# Load the image from given image path
+#
+###########################################################################
     '''
     Params:
         image_path - Path from where to load the image
@@ -99,8 +112,10 @@ class FaceDetection:
         return image
 
 ###########################################################################
-
-    # Detects a face from the given image
+#
+# Detects a face from the given image
+#
+###########################################################################
     '''
     Params:
         image - input image to detect the face
@@ -123,8 +138,10 @@ class FaceDetection:
         return dets
 
 ###########################################################################
-
-    # Detects faces from the given image list in batches
+#
+# Detects faces from the given image list in batches
+#
+###########################################################################
     '''
     Params:
         image_list = A list of images from which faces are to be detected
@@ -175,7 +192,10 @@ class FaceDetection:
             return dets
 
 ###########################################################################
-
+#
+#   Detect face landmarks
+#
+###########################################################################
     '''
     Params:
         image = Input image
@@ -216,8 +236,10 @@ class FaceDetection:
         return shapes
 
 ###########################################################################
-
-    # Function alligns an image into a 150 x 150 image using dlib library
+#
+# Function alligns an image into a 150 x 150 image using dlib library
+#
+###########################################################################
     '''
     Params:
         image - Input image to be alligned
@@ -255,8 +277,10 @@ class FaceDetection:
         return images
 
 ###########################################################################
-
-    # Get Alligned faces using a custom face alligner based on face landmarks (For learning refer Pyimagesearch)
+#
+# Get Alligned faces using a custom face alligner based on face landmarks (For learning refer Pyimagesearch)
+#
+###########################################################################
     '''
     Params:
         image - Loaded input image
@@ -307,7 +331,10 @@ class FaceDetection:
         return alligned_faces
 
 ###########################################################################
-    # Get face slices of each landmark detected
+#
+# Get face slices of each landmark detected
+#
+###########################################################################
     '''
     Params:
         image - Input image to slice
@@ -383,8 +410,10 @@ class FaceDetection:
         return ROI_list
 
 ###########################################################################
-
-    # Draw face landmarks on the image
+#
+# Draw face landmarks on the image
+#
+###########################################################################
     '''
     Params:
         image - Given input image on which to draw face landmarks

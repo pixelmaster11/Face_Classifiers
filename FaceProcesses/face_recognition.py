@@ -36,10 +36,11 @@ class FaceRecognition:
 
 ###################################################################################################################################
 #
-# This function is used for face recognition for an image directory
+# This function is used for face recognition on an image directory
 #
 ###################################################################################################################################
     '''
+    Params:
         @:param: target_path - Directory of all images for which to perform recognition
         @:param: distance_threshold - Loose / Strict allowance of false matches
         @:param: metric - Metric used to calculate distance between embeddings. Choices are euclidean, euclidean_numpy, cosine
@@ -75,6 +76,7 @@ class FaceRecognition:
 #
 ###################################################################################################################################
     '''
+    Params:
         @:param: target_embeddings - List of embeddings to match with the dataset embeddings
         @:param: target_images  - List of images for which to perform face recognition
     '''
@@ -191,6 +193,7 @@ class FaceRecognition:
 #
 ###################################################################################################################################
     '''
+    Params:
         @:param: use_video - Whether to use a video file as feed instead of webcam
         @:param: display - Whether to display the stream on screen
         @:param: write_output - Whether to write the detected faces from the stream to a file
@@ -322,12 +325,6 @@ def parse_args():
 
     ap = argparse.ArgumentParser()
 
-    ap.add_argument("-id",
-                    "--image_dir",
-                    required=False,
-                    help="Path for the image dataset",
-                    default="../Images\\Face_Recognition\\")
-
 
     ap.add_argument("-tid",
                     "--test_image_dir",
@@ -353,7 +350,15 @@ def parse_args():
                     "--embed_filename",
                     required=False,
                     help="Name of saved embeddings file",
-                    default="embeddings.pkl")
+                    default="embeddings_fr_test_images.pkl")
+
+    ap.add_argument("-s",
+                    "--save_test_embeddings",
+                    required=False,
+                    default=False,
+                    type=utilities.str2bool,
+                    nargs='?',
+                    help="Whether to save test images computed embeddings")
 
 
     ap.add_argument("-fd",
@@ -370,6 +375,20 @@ def parse_args():
                     help="Whether to use a 68-point or 5-point based landmark detection model",
                     default="68")
 
+    ap.add_argument("-a",
+                    "--allign",
+                    required=False,
+                    default=False,
+                    type=utilities.str2bool,
+                    nargs='?',
+                    help="Whether to allign images before computation")
+
+    ap.add_argument("-d",
+                    "--distance_threshold",
+                    required=False,
+                    default=0.6,
+                    type=float,
+                    help="Threshold used during face recognition, lower threshold is more strict and higher threshold will generate more matches with more false positives")
 
     ap.add_argument("-gpu",
                     "--use_gpu",
@@ -414,33 +433,33 @@ if __name__ == '__main__':
     args = parse_args()
 
     # Save the arguements
-    ip = args["image_dir"]
     test_ip = args["test_image_dir"]
     gpu = args["use_gpu"]
     flm = args["face_landmarks_method"]
     fdm = args["face_detection_method"]
+    allign = args["allign"]
+    d = args["distance_threshold"]
     embed_svdir = args["embeddings_save_dir"]
     embed_ldir = args["embeddings_load_dir"]
     use_cam = args["use_cam"]
     use_vid = args["use_vid"]
 
     filename = args["embed_filename"]
-
-    mode = "load"
-    embed_ldir = "../Embeddings\\"
-    filename = "embeddings_fr.pkl"
-    gpu = True
-
+    save = args["save_test_embeddings"]
 
     gen = GenerateDataset(face_detection_model=fdm, face_landmark_model=flm, use_gpu=gpu)
     fr = FaceRecognition()
 
-    # Load dataset from given path
+    # NEED AN ALREADY GENERATED DATASET TO USE
+    # USE GENERATE DATASET.PY FILE TO GENERATE A DATASET AND LOAD IT USING THIS SCRIPT
+
+    # Load generated embeddings file from given path
     fr.dataset_embeddings, fr.dataset_labels, fr.dataset_imagepaths = gen.load_dataset(filename=filename ,load_dir=embed_ldir)
 
     # Perform face recognition on test image directory
     if not use_cam and not use_vid:
-        fr.recognize(target_path=test_ip, distance_threshold=0.6, metric="euclidean", allign=False, resize=False)
+        fr.recognize(target_path=test_ip, distance_threshold=d, metric="euclidean_numpy", allign=allign
+                     , resize=False, save_dir=embed_svdir, filename=filename, save=save)
 
     # Face recognition on webcam or video input feed
     else:

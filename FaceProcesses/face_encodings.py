@@ -421,7 +421,7 @@ class Face_Encoding:
         filename - Embedding filename that will be generated after saving
         
     Returns:
-        A tuple of (embeddings list, labels list, image_paths list)
+        A tuple of (numpy array of embeddings, labels list, image_paths list)
     '''
     def get_embeddings_at_path(self, image_path, allign=True, resize=False, save_to_file=True, save_path="../Embeddings\\",
                                filename="embeddings"):
@@ -504,6 +504,15 @@ class Face_Encoding:
             print(np.array(images).shape)
 
 
+        # Convert embeddings list of dlib vectors to a numpy array
+        feats = np.empty((len(labels), 128))
+
+        for i, feat in enumerate(embeddings):
+            feat = np.array(feat).reshape(1, -1)
+            feats[i] = feat
+
+        embeddings = feats
+
         if save_to_file:
             utilities.save_embeddings(embeddings=embeddings, labels=labels, image_paths=images, save_path=save_path,
                                  embed_filename=filename)
@@ -528,7 +537,7 @@ class Face_Encoding:
         filename - Embedding filename that will be generated after saving
     
     Returns:
-        A tuple of (embeddings list, labels list, image_paths list)
+        A tuple of (numpy array of embeddings, detection boxes list, image_paths list)
     '''
 
     def get_only_embeddings_at_path(self, image_path, allign=True, resize=False, save_to_file=True, save_path="../Embeddings\\",
@@ -575,14 +584,21 @@ class Face_Encoding:
                 # In case of multiple faces in single images
                 for image in alligned_images:
 
-                    e = self.get_embeddings(image, draw=draw)
-                    if e is None:
-                        continue
-                    elif len(e) == 0:
+                    embeds = self.get_embeddings(image, draw=draw)
+
+                    if embeds is None:
                         continue
 
-                    embeddings.append(e)
-                    images.append(ip)
+                    # For multiple faces in single image
+                    for e in embeds:
+
+                        if e is None:
+                            continue
+                        elif len(e) == 0:
+                            continue
+
+                        embeddings.append(e)
+                        images.append(ip)
 
 
 
@@ -612,7 +628,15 @@ class Face_Encoding:
             #print(np.array(images).shape)
             #print(np.array(boxes).shape)
 
+        # Convert embeddings list of dlib vectors to a numpy array
+        feats = np.empty((len(images), 128))
 
+        for i, feat in enumerate(embeddings):
+            feat = np.array(feat).reshape(1, -1)
+            feats[i] = feat
+
+        embeddings = feats
+        print(np.array(embeddings).shape)
 
         if save_to_file:
             utilities.save_only_embeddings(embeddings=embeddings, boxes=boxes, image_paths=images, save_path=save_path,

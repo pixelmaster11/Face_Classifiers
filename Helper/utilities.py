@@ -85,7 +85,10 @@ def save_embeddings(embeddings, labels, image_paths, save_path="../Embeddings\\"
     if not os.path.isdir(save_path):
         os.mkdir(save_path)
 
-    output_path_embed = os.path.join(save_path, embed_filename) + ".pkl"
+    if not embed_filename.__contains__(".pkl"):
+        output_path_embed = os.path.join(save_path, embed_filename) + ".pkl"
+    else:
+        output_path_embed = os.path.join(save_path, embed_filename)
 
     # Save features to file
     print('Saved embeddings to file as {}'.format(output_path_embed))
@@ -121,7 +124,10 @@ def save_only_embeddings(embeddings, image_paths, boxes, save_path="../Embedding
     if not os.path.isdir(save_path):
         os.mkdir(save_path)
 
-    output_path_embed = os.path.join(save_path, embed_filename) + ".pkl"
+    if not embed_filename.__contains__(".pkl"):
+        output_path_embed = os.path.join(save_path, embed_filename) + ".pkl"
+    else:
+        output_path_embed = os.path.join(save_path, embed_filename)
 
     # Save features to file
     print('Saved embeddings, boxes, image_paths to file as {}'.format(output_path_embed))
@@ -147,21 +153,23 @@ def save_only_embeddings(embeddings, image_paths, boxes, save_path="../Embedding
     '''
 def load_embeddings(load_path="../Embeddings\\", embed_filename="embeddings.pkl"):
 
+    if not embed_filename.__contains__(".pkl"):
+        embed_filename += ".pkl"
+
     # Loading Features
     with open(os.path.join(load_path, embed_filename), "rb") as infile:
         (dataset_embeddings, dataset_labels, dataset_imagepaths) = pickle.load(infile)
 
     print("\nLoaded embeddings file from {}".format(load_path + embed_filename))
 
-    feats = np.empty((len(dataset_labels), 128))
+    '''feats = np.empty((len(dataset_labels), 128))
 
     for i, feat in enumerate(dataset_embeddings):
         feat = np.array(feat).reshape(1, -1)
-        feats[i] = feat
+        feats[i] = feat'''
 
-    print("Loaded features and labels successfully %s %s" % ((np.array(feats).shape), np.array(dataset_labels).shape))
+    print("Loaded features and labels successfully %s %s" % ((np.array(dataset_embeddings).shape), np.array(dataset_labels).shape))
 
-    dataset_embeddings = feats
 
     return dataset_embeddings, dataset_labels, dataset_imagepaths
 
@@ -182,6 +190,11 @@ Returns:
 '''
 
 def load_only_embeddings(load_path="../Embeddings\\", embed_filename="embeddings.pkl"):
+
+
+    if not embed_filename.__contains__(".pkl"):
+        embed_filename += ".pkl"
+
     # Loading Features
     with open(os.path.join(load_path, embed_filename), "rb") as infile:
         (dataset_embeddings, dataset_boxes, dataset_imagepaths) = pickle.load(infile)

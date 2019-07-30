@@ -15,10 +15,10 @@ class GenerateDataset():
     '''
 ##################################################################################################################################
 
-    def __init__(self, face_detection_model="CNN", face_landmark_model="68", use_gpu=True):
+    def __init__(self, face_detection_model="CNN", face_landmark_model="68", use_gpu=True, verbose = 1):
 
         self.fe = Face_Encoding(face_detection_model=face_detection_model, face_landmark_model=face_landmark_model,
-                                use_gpu=use_gpu, verbose=1)
+                                use_gpu=use_gpu, verbose=verbose)
 
 
 
@@ -37,10 +37,11 @@ class GenerateDataset():
         @:param: save_dir - Path where the generated embeddings would be saved
     
     Returns:
-        @:returns: A tuple of (embeddings, labels, image_paths)
+        @:returns: A tuple of (np array embeddings, labels, image_paths)
         
     '''
     def generate_dataset(self, image_dir, filename, save_dir="../Embeddings", allign=False, resize=False,save=True):
+
         dataset_embeddings, \
         dataset_labels, \
         dataset_imagepaths = self.fe.get_embeddings_at_path(image_path=image_dir, allign=allign,
@@ -49,6 +50,24 @@ class GenerateDataset():
 
         return dataset_embeddings, dataset_labels, dataset_imagepaths
 
+###################################################################################################################################
+#
+#   This function calculates only the embeddings and not the labels.
+#   This is useful for calculating embeddings for test images where we don't have the ground truths available
+#
+###################################################################################################################################
+    '''
+    Params:
+        @:param: image_dir - Path where all the images are located
+        @:param: filename - Name of the embeddings file to be used while saving
+        @:param: save_dir - Path where the generated embeddings file will be saved
+        @:param: allign - Whether to allign images before extracting embeddings
+        @:param: resize - Wheter to resize images before extracting embeddings
+        @:param: save - Whether to save extracted embeddings to a file  
+    
+    Returns:
+          @:returns: A tuple of (np array embeddings, labels, image_paths)
+    '''
     def generate_only_emebddings_at_path(self, image_dir, filename, save_dir="../Embeddings", allign=False, resize=False,save=True):
 
         dataset_embeddings, \
@@ -93,7 +112,7 @@ class GenerateDataset():
         @:param: load_dir - Path to the embeddings directory 
         
     Returns:
-        @:returns: A tuple of (embeddings, labels, image_paths)
+        @:returns: A tuple of (np array of embeddings, labels, image_paths)
     '''
     def load_dataset(self, filename, load_dir):
         (dataset_embeddings, dataset_labels, dataset_imagepaths) = utilities.load_embeddings(
@@ -106,6 +125,28 @@ class GenerateDataset():
 
         return dataset_embeddings, dataset_labels, dataset_imagepaths
 
+###################################################################################################################################
+#
+# This function loads an already generated only embeddings file from the given load path
+#
+###################################################################################################################################
+    '''
+    Params:
+        @:param: filename - Name of the embeddings/ feature file to load
+        @:param: load_dir - Path to the embeddings directory 
+
+    Returns:
+        @:returns: A tuple of (np array of embeddings, boxes, image_paths)
+    '''
+
+    def load_only_embeddings(self, filename, load_dir):
+        (dataset_embeddings, dataset_boxes, dataset_imagepaths) = utilities.load_only_embeddings(load_path=load_dir, embed_filename=filename)
+
+        print("Total Embeddings {}".format(np.array(dataset_embeddings).shape))
+        print("Total Labels {}".format(np.array(dataset_boxes).shape))
+        print("Total Images {}".format(np.array(dataset_imagepaths).shape))
+
+        return dataset_embeddings, dataset_boxes, dataset_imagepaths
 
 ####################################################################################################################################
 #
@@ -132,7 +173,7 @@ def parse_args():
     ap.add_argument("-ef",
                     "--embed_filename",
                     required=False,
-                    help="Name of embeddings file that will be saved",
+                    help="Name of embeddings file that will be saved or loaded from",
                     default="embeddings")
 
     ap.add_argument("-eds",
@@ -169,6 +210,15 @@ def parse_args():
                     type=utilities.str2bool,
                     nargs='?',
                     help="Whether to use GPU for computation")
+
+    ap.add_argument("-a",
+                    "--allign",
+                    required=False,
+                    default=False,
+                    type=utilities.str2bool,
+                    nargs='?',
+                    help="Whether to allign images before computation")
+
 
     ap.add_argument("-mp",
                     "--multi_proc",
@@ -208,24 +258,29 @@ if __name__ == '__main__':
     flm = args["face_landmarks_method"]
     fdm = args["face_detection_method"]
     embed_svdir = args["embeddings_save_dir"]
-    filename = args["embed_filename"]
     embed_ldir = args["embeddings_load_dir"]
+    filename = args["embed_filename"]
     use_batch = args["use_batch"]
     batch_size = args["batch_size"]
+    allign = args["allign"]
 
     filename = "embeddings_ethnicity1"
     mode = "save"
 
     gen = GenerateDataset(face_detection_model=fdm, face_landmark_model=flm, use_gpu=gpu)
 
-    # Load embeddings else generate new ones
+    # Load embeddings
     if mode == "load":
         gen.load_dataset(filename=filename, load_dir=embed_ldir)
+
+    # Else generate new ones
     else:
+        # Use batching
         if use_batch:
             gen.generate_dataset_batch(image_path=ip, batch_size=batch_size)
+        # Without batching
         else:
-            gen.generate_dataset(image_dir =ip, filename=filename, save_dir=embed_svdir, allign=False, resize=False, save=True)
+            gen.generate_dataset(image_dir =ip, filename=filename, save_dir=embed_svdir, allign=allign, resize=False, save=True)
 
 
 
