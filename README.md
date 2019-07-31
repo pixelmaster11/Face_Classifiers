@@ -36,7 +36,7 @@ This structure is important as the label names are extracted from the respective
     python generate_dataset.py --image_dataset_dir="path/to/image_dir/" --embed_filename="somename_embeddings" --mode="save" 
     --embeddings_save_dir="path/where/generated/embeddings/file/will/be/saved"
     
-   This will generate a .pkl file at your given path. This file stores embeddings, labels, image_paths in a single file.
+    This will generate a .pkl file at your given path. This file stores embeddings, labels, image_paths in a single file.
    
 **III.** Next step will be to train our classifier model using the generated embeddings and labels.
      There are couple of classifier classes provided such as svm.py or knn.py which allows you to optimize the hyper parameters. If you want to skip optimization, you can directly run classifier.py which uses a SVM classifier.
