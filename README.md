@@ -6,24 +6,25 @@ This project also provides very easy face detection, face recognition using Dlib
 I. To create a classifier whether it is for gender or ethnicity or face recognition or a custom one, the image directory should be as follows:
 
 Image Directory
-|__ Face_Recognition
-│       ├── Bruce Lee
-│       ├── Mr Bean
-│       ├── Fernando Torres
-│       ├── Mo Salah
-│       ├── Sadio Mane
-│   
-|   
-|__ Gender_Recognition
-|       ├── Male
-|       ├── Female
-|   
-|   
-|__ Ethnicity_Recognition
-|       ├── Asian
-|       ├── Black
-|       ├── Indian
-|       ├── White
+
+    |__ Face_Recognition
+    │       ├── Bruce Lee
+    │       ├── Mr Bean
+    │       ├── Fernando Torres
+    │       ├── Mo Salah
+    │       ├── Sadio Mane
+    │   
+    |   
+    |__ Gender_Recognition
+    |       ├── Male
+    |       ├── Female
+    |   
+    |   
+    |__ Ethnicity_Recognition
+    |       ├── Asian
+    |       ├── Black
+    |       ├── Indian
+    |       ├── White
 
 
 This structure is important as the label names are extracted from the respective Folder Names. Thus, for face recognition the labels for all images under folder Mo Salah will be given the label as Mo Salah and so on. 
