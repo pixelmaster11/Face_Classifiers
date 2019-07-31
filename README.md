@@ -3,6 +3,10 @@
 This project is used for different types of classifications such as gender, ethnicity, etc attributes that can be extracted from face images. 
 This project also provides very easy face detection, face recognition using Dlib and opencv libraries. 
 
+Install dependencies:
+
+    pip install -r requirements.txt
+
 **I.** To create a classifier whether it is for gender or ethnicity or face recognition or a custom one, the image directory should be as follows:
 
     Image Directory
