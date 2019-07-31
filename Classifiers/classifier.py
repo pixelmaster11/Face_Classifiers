@@ -4,6 +4,7 @@ from Classifiers import ml_utils
 import numpy as np
 import time
 from sklearn.svm import LinearSVC, SVC
+import argparse
 
 '''
 This class is responsible for training the provided ML Model.
@@ -33,6 +34,19 @@ class MLClassifier():
     '''
     def set_model(self, ml_model):
         self.model = ml_model
+
+
+#########################################################################################################
+#
+# Sets the ml model name
+#
+#########################################################################################################
+    '''
+    Params:
+        @:param: ml_model - ML model to set
+    '''
+    def set_model_name(self, ml_name):
+        self.name = ml_name
 
 #########################################################################################################
 #
@@ -172,14 +186,93 @@ class MLClassifier():
 
         return accuracy
 
+
+
+####################################################################################################################################
+#
+# Construct the argument parser and parse the arguments
+#
+###################################################################################################################################
+def parse_args():
+
+
+    ap = argparse.ArgumentParser()
+
+
+    ap.add_argument("-edl",
+                    "--embeddings_load_dir",
+                    required=False,
+                    help="Path where to load the saved embeddings file",
+                    default="../Embeddings\\")
+
+    ap.add_argument("-ef",
+                    "--embed_filename",
+                    required=False,
+                    help="Name of embeddings file that will be saved or loaded from",
+                    default="embeddings")
+
+    ap.add_argument("-s",
+                    "--save_model",
+                    required=False,
+                    default=False,
+                    type=utilities.str2bool,
+                    nargs='?',
+                    help="Whether to save trained model")
+
+    ap.add_argument("-mf",
+                    "--model_filename",
+                    required=False,
+                    help="Name of the model file that will be saved or loaded from",
+                    default="SVC_face_recog")
+
+    ap.add_argument("-mds",
+                    "--model_save_dir",
+                    required=False,
+                    help="Path where to save the model file",
+                    default="../MLModels\\")
+
+
+    ap.add_argument("-mdl",
+                    "--model_load_dir",
+                    required=False,
+                    help="Path from where to load the saved model file",
+                    default="../MLModels\\")
+
+
+
+    ap.add_argument("-m",
+                    "--mode",
+                    choices=["load", "save"],
+                    required=False,
+                    help="Whether to load already existing model or generate and save new one",
+                    default="save")
+
+    return vars(ap.parse_args())
+
+
+
+
+
 if __name__ == '__main__':
 
-    features, labels, ips = utilities.load_embeddings(load_path="../Embeddings/", embed_filename="embeddings_ethnicity.pkl")
+    # Get the arguements
+    args = parse_args()
 
-    svc = SVC(C=1, kernel="poly", max_iter=-1, degree=7, probability=True, gamma="scale")
-    ml_cl = MLClassifier(ml_model=svc, model_name="SVC")
+    # Load the features and labels
+    features, labels, ips = utilities.load_embeddings(load_path=args["embeddings_load_dir"], embed_filename=args["embed_filename"])
 
-    ml_cl.train_classifier(features=features,labels=labels, save_model=True, save_name="ethnicity_recog")
-    #ml_cl.load_model(filename="SVC_gender_recog.pkl")
-    #ml_cl.test_classifier(test_features=features,test_labels=labels)
+    ml_cl = MLClassifier()
+
+    # If train new model
+    if args["mode"] == "save":
+        svc = SVC(C=1, kernel="poly", max_iter=-1, degree=7, probability=True, gamma="scale")
+        ml_cl.set_model(ml_model=svc)
+        ml_cl.set_model_name(ml_name="SVC")
+        ml_cl.train_classifier(features=features,labels=labels, save_model=args["save_model"], save_name=args["model_filename"])
+
+    # Load already existing model and train
+    else:
+        ml_cl.load_model(filename="SVC_gender_recog.pkl")
+        ml_cl.train_classifier(features=features, labels=labels, save_model=args["save_model"], save_name=args["model_filename"])
+        #ml_cl.test_classifier(test_features=features,test_labels=labels)
 

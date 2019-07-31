@@ -216,6 +216,9 @@ def save_ml_model(ml_model, ml_name, features, labels, save_dir = "../MLModels")
 # Loads the ml model from file
 def load_ml_model(load_dir = "../MLModels", filename = ""):
 
+    if not filename.__contains__(".pkl"):
+        filename = filename + ".pkl"
+
     with open(os.path.join(load_dir, filename), 'rb') as infile:
         (ml_model, ml_name, labels, features) = pickle.load(infile)
 
