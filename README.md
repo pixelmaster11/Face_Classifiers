@@ -3,7 +3,7 @@
 This project is used for different types of classifications such as gender, ethnicity, etc attributes that can be extracted from face images. 
 This project also provides very easy face detection, face recognition using Dlib and opencv libraries. 
 
-I. To create a classifier whether it is for gender or ethnicity or face recognition or a custom one, the image directory should be as follows:
+**I.** To create a classifier whether it is for gender or ethnicity or face recognition or a custom one, the image directory should be as follows:
 
 Image Directory
 
@@ -29,7 +29,7 @@ Image Directory
 
 This structure is important as the label names are extracted from the respective Folder Names. Thus, for face recognition the labels for all images under folder Mo Salah will be given the label as Mo Salah and so on. 
 
-II. The next step is to extract embeddings from the images which would be our feature vectors. These embeddings are computed using a pretrained CNN model from dlib library. These are 128-D embeddings. These embeddings will be extracted and stored alongwith their labels and this will be used as the inputs to our classifier models. 
+**II.** The next step is to extract embeddings from the images which would be our feature vectors. These embeddings are computed using a pretrained CNN model from dlib library. These are 128-D embeddings. These embeddings will be extracted and stored alongwith their labels and this will be used as the inputs to our classifier models. 
     
     To generate the embeddings use the script generate_dataset.py as follows:
     
@@ -38,7 +38,7 @@ II. The next step is to extract embeddings from the images which would be our fe
     
    This will generate a .pkl file at your given path. This file stores embeddings, labels, image_paths in a single file.
    
-III. Next step will be to train our classifier model using the generated embeddings and labels.
+**III.** Next step will be to train our classifier model using the generated embeddings and labels.
      There are couple of classifier classes provided such as svm.py or knn.py which allows you to optimize the hyper parameters. If you want to skip optimization, you can directly run classifier.py which uses a SVM classifier.
      
      To run the classifier use the script classifier.py as follows:
