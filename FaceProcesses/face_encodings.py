@@ -636,7 +636,8 @@ class Face_Encoding:
             feats[i] = feat
 
         embeddings = feats
-        print(np.array(embeddings).shape)
+
+        print("Embeddings {}".format(np.array(embeddings).shape))
 
         if save_to_file:
             utilities.save_only_embeddings(embeddings=embeddings, boxes=boxes, image_paths=images, save_path=save_path,

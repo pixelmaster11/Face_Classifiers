@@ -68,7 +68,7 @@ class GenerateDataset():
     Returns:
           @:returns: A tuple of (np array embeddings, labels, image_paths)
     '''
-    def generate_only_emebddings_at_path(self, image_dir, filename, save_dir="../Embeddings", allign=False, resize=False,save=True):
+    def generate_only_emebddings_at_path(self, image_dir, filename="", save_dir="../Embeddings", allign=False, resize=False,save=True):
 
         dataset_embeddings, \
         dataset_boxes, \

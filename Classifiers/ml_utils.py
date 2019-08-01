@@ -12,7 +12,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 # This function returns a scaling function of specified type
-def get_scaing(scaling_type = "Std"):
+def get_scaling(scaling_type = "Std"):
 
     if scaling_type == "Norm":
         return Normalizer()
