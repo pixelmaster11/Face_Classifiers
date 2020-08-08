@@ -7,6 +7,7 @@ Install dependencies:
 
     pip install -r requirements.txt
 
+# Step 1
 **I.** To create a classifier whether it is for gender or ethnicity or face recognition or a custom one, the image directory should be as follows:
 
     Image Directory
@@ -32,6 +33,7 @@ Install dependencies:
 
 This structure is important as the label names are extracted from the respective Folder Names. Thus, for face recognition the labels for all images under folder Mo Salah will be given the label as Mo Salah and so on. 
 
+# Step 2
 **II.** The next step is to extract embeddings from the images which would be our feature vectors. These embeddings are computed using a pretrained CNN model from dlib library. These are 128-D embeddings. These embeddings will be extracted and stored alongwith their labels and this will be used as the inputs to our classifier models. 
     
     To generate the embeddings use the script generate_dataset.py as follows:
@@ -40,7 +42,8 @@ This structure is important as the label names are extracted from the respective
     --embeddings_save_dir="path/where/generated/embeddings/file/will/be/saved"
     
     This will generate a .pkl file at your given path. This file stores embeddings, labels, image_paths in a single file.
-   
+
+# Step 3
 **III.** Next step will be to train our classifier model using the generated embeddings and labels.
      There are couple of classifier classes provided such as svm.py or knn.py which allows you to optimize the hyper parameters. If you want to skip optimization, you can directly run classifier.py which uses a SVM classifier.
      
